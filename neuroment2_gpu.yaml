@@ -27,6 +27,7 @@ dependencies:
   # scientific computing
   - scipy
   - scikit-learn
+  - pandas
   
   # audio
   - librosa
