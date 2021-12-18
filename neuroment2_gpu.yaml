@@ -1,0 +1,43 @@
+## Conda dependencies for running neuroment2 on CPU.
+#
+name: neuroment2-gpu
+
+channels:
+  - defaults
+  - pytorch
+  - conda-forge
+
+dependencies:
+  # basics
+  - python=3.9
+  - git
+  - pip
+  - curl
+  - zip
+  - pyyaml
+  - tqdm  # progress bar
+  
+  # machine learning
+  - pytorch=1.9=*_cuda*
+  - torchvision
+  - tensorboard
+  - torchinfo  # for proper display of network structures
+  
+  # scientific computing
+  - scipy
+  - scikit-learn
+  
+  # audio
+  - librosa
+  - audioread
+  
+  # dev packages
+  - nose  # for testing
+  - matplotlib
+  - snakeviz  # for displaying profiling results
+
+  # pip dependencies
+  - pip:
+    # configuration and logging management using Hydra
+    - hydra-core
+    - hydra_colorlog
