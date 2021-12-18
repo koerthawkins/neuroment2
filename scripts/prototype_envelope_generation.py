@@ -60,6 +60,7 @@ HOP_SIZE = FRAME_SIZE // 4
 N_BINS_PER_OCTAVE = [12, 24, 48]  # bass, mid, high
 N_OCTAVES = [3, 2, 3]  # bass, mid, high
 F_MIN = 27.5
+F_MAX = 20000.0
 AUDIO_LENGTH_IN_S = 5.0
 SAMPLE_RATE = 44100
 WINDOW = "hann"  # recommended options: "hann", "boxcar" (= rectangular)
@@ -189,10 +190,10 @@ for (audio_name, audio) in TEST_DATA:
     print("Analyzing audio %s ..." % audio_name)
 
     # filter audio below minimum CQT frequency
-    audio = butter_filter(audio, cqt_freqs_stacked[0], SAMPLE_RATE, "high")
+    audio = butter_filter(audio, F_MIN, SAMPLE_RATE, "high")
 
     # filter audio above maximum CQT frequency
-    audio = butter_filter(audio, cqt_freqs_stacked[-1], SAMPLE_RATE, "low")
+    audio = butter_filter(audio, F_MAX, SAMPLE_RATE, "low")
 
     cqt_b, cqt_m, cqt_h = compute_cqts(audio)
 
@@ -219,8 +220,8 @@ for (audio_name, audio) in TEST_DATA:
         sr=SAMPLE_RATE,
         n_fft=FRAME_SIZE,
         n_mels=N_MELS,
-        fmin=cqt_freqs_stacked[0],
-        fmax=cqt_freqs_stacked[-1],
+        fmin=F_MIN,
+        fmax=F_MAX,
         norm=1.0,
     )
     mel = np.dot(mel_filter_bank, stft_mel)
