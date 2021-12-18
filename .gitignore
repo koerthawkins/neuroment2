@@ -12,6 +12,14 @@ outputs/*
 *.flac
 *.FLAC
 
+## All picture files
+*.png
+*.jpeg
+*.jpg
+*.bmp
+*.svg
+*.eps
+
 ## Linux temporary files
 *~
 
