@@ -16,6 +16,7 @@ dependencies:
   - zip
   - pyyaml
   - tqdm  # progress bar
+  - black
   
   # machine learning
   - pytorch
