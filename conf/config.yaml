@@ -3,3 +3,16 @@ defaults:
   # NOTE: you need to have the colorlog plugin install (pip install hydra_colorlog)
   - hydra/job_logging: colorlog
   - hydra/hydra_logging: colorlog
+
+Mixer:
+  data_path: "data/"
+  dataset: "Medley-solos-DB"
+  num_epochs: 10
+  num_instruments: [1, 4]
+  Mix:
+    sr: 44100
+    # options: CQT, STFT, MEL
+    feature: "CQT"
+
+
+
