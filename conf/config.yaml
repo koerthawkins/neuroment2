@@ -1,8 +1,8 @@
 defaults:
   # configure coloured logging
   # NOTE: you need to have the colorlog plugin install (pip install hydra_colorlog)
-  - hydra/job_logging: colorlog
-  - hydra/hydra_logging: colorlog
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
 
 Mixer:
   data_path: "data/"
@@ -13,6 +13,3 @@ Mixer:
     sr: 44100
     # options: CQT, STFT, MEL
     feature: "CQT"
-
-
-

@@ -16,6 +16,8 @@ dependencies:
   - zip
   - pyyaml
   - tqdm  # progress bar
+  - black
+  - mamba
   
   # machine learning
   - pytorch=1.9=*_cuda*
