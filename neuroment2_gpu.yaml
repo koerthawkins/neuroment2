@@ -17,6 +17,7 @@ dependencies:
   - pyyaml
   - tqdm  # progress bar
   - black
+  - mamba
   
   # machine learning
   - pytorch=1.9=*_cuda*
@@ -27,7 +28,6 @@ dependencies:
   # scientific computing
   - scipy
   - scikit-learn
-  - pandas
   
   # audio
   - librosa
