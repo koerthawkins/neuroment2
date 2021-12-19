@@ -2,9 +2,11 @@ import glob
 import hydra
 import logging as log
 from omegaconf import DictConfig
+import numpy as np
 import os
 import torch
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from neuroment2 import *
 
@@ -89,6 +91,53 @@ def train(cfg: DictConfig) -> None:
         shuffle=True,
         num_workers=cfg.train.num_workers,
     )
+
+    # init SummaryWriter to log TensorBoard events
+    train_writer = SummaryWriter(os.path.join(cfg.train.tensorboard_dir, "train"))
+    val_writer = SummaryWriter(os.path.join(cfg.train.tensorboard_dir, "val"))
+
+    # create loss function
+    loss_fn = torch.nn.MSELoss()
+
+    # set model to training mode
+    model.train()
+
+    # we want to collect the latest 100 losses for averaging
+    loss_list = []
+
+    while step < cfg.train.training_steps:
+        # we hit a new epoch if we land here
+        epoch += 1
+
+        for (x, y) in train_loader:
+            # increase step counter
+            step += 1
+
+            # tell pytorch to attach gradients to our features and labels
+            x = torch.autograd.Variable(x.to(device, non_blocking=True))
+            y = torch.autograd.Variable(y.to(device, non_blocking=True))
+
+            # reset gradient
+            optimizer.zero_grad()
+
+            # predict
+            y_pred = model(x)
+
+            # compute losses
+            loss = loss_fn(y_pred, y)
+
+            # backwards-propagate loss and update weights in model
+            loss.backward()
+            optimizer.step()
+
+            # compute average loss over the last n_batches_per_average batches
+            loss_list.append(loss)
+            if len(loss_list) > cfg.train.n_batches_per_average:
+                loss_list = loss_list[-cfg.train.n_batches_per_average:]
+            avg_loss = np.mean(loss_list)
+
+            print("Loss: %.5f" % avg_loss)
+
 
 def validation():
     pass

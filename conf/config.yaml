@@ -27,10 +27,12 @@ Mixer:
 
 train:
   model_dir: "models/"
+  tensorboard_dir: "logs/"
   training_steps: 1000
   continue_training: True
   num_workers: 2
   batch_size: 16
+  n_batches_per_average: 100
 
 optimizer:
   learning_rate: 0.001
