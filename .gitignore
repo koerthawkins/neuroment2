@@ -28,6 +28,9 @@ logs/*
 *.svg
 *.eps
 
+# All pickle files
+*.pkl
+
 ## Linux temporary files
 *~
 
