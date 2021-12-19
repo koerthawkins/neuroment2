@@ -6,7 +6,7 @@ defaults:
 
 Mixer:
   data_path: "data/"
-  dataset: "Medley-solos-DB_small"
+  dataset: "clean_dataset"
   num_epochs: 1
   num_instruments_mix: [1, 4]
   num_instruments: 8
