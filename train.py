@@ -8,6 +8,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
+import yaml
 
 from neuroment2 import *
 
@@ -25,12 +26,15 @@ def train(cfg: DictConfig) -> None:
 
     log.info("Selected device: %s" % device)
 
+    # read dataset statistics to get model size
+    with open(os.path.join(cfg.train.dataset_dir, "statistics.yml"), "r") as f:
+        dataset_stats = yaml.load(f, Loader=yaml.SafeLoader)
+
     # create model
-    # TODO read me dynamically
     model = NeuromentModel(
-        num_instruments=8,
-        num_input_features=128,
-        num_input_frames=14,
+        num_instruments=dataset_stats["num_instruments"],
+        num_input_features=dataset_stats["num_features_per_observation"],
+        num_input_frames=dataset_stats["num_frames_per_observation"],
     )
     model.to(device)
 
@@ -84,7 +88,7 @@ def train(cfg: DictConfig) -> None:
 
     # create training dataset and loader
     train_dataset = Neuroment2Dataset(
-        "data/pickle/",
+        cfg.train.dataset_dir,
         "training",
     )
     train_loader = DataLoader(
@@ -96,7 +100,7 @@ def train(cfg: DictConfig) -> None:
 
     # create validation dataset and loader
     val_dataset = Neuroment2Dataset(
-        "data/pickle/",
+        cfg.train.dataset_dir,
         "validation",
     )
     val_loader = DataLoader(
@@ -133,6 +137,9 @@ def train(cfg: DictConfig) -> None:
             # tell pytorch to attach gradients to our features and labels
             x = torch.autograd.Variable(x.to(device, non_blocking=True))
             y = torch.autograd.Variable(y.to(device, non_blocking=True))
+
+            # add channel dimension
+            x = torch.unsqueeze(x, 1)
 
             # reset gradient
             optimizer.zero_grad()
