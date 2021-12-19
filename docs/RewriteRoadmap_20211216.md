@@ -96,4 +96,9 @@
 - frame index
 - UID
   
+## Inference
+
+- for inference we want to smooth the edges of our signal frames
+  - at the edges we may get signal peaks, which we don't want
+- for that we overlap our prediction frames of ~350ms during inference by half their samples, and apply a Hann window to them when patching them together
   
