@@ -10,11 +10,19 @@ from torchinfo import summary
 class NeuromentModel(nn.Module):
     def __init__(
         self,
-        num_instruments,  # our number of classes
-        num_input_features,
-        num_input_frames,
-        use_batch_norm=True,
+        num_instruments: int,  # our number of classes
+        num_input_features: int,
+        num_input_frames: int,
+        use_batch_norm: bool = True,
     ):
+        """ Creates the NeuromentModel.
+
+        Args:
+            num_instruments: number of instruments (i.e. number of output classes)
+            num_input_features: length of feature vector (e.g. 128 for 128 bin mel-spectrogram)
+            num_input_frames: number of input frames (e.g. derived frame FFT-frame size and hop size)
+            use_batch_norm: whether to use BatchNorm after Conv2d layers or not
+        """
         super(NeuromentModel, self).__init__()
 
         self.num_instruments = num_instruments  # i.e. num_output_features
@@ -60,7 +68,14 @@ class NeuromentModel(nn.Module):
         )
         log.info(summary_str)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
+        """Passes the input tensor x through the network.
+        Args:
+            x: Tensor of shape [batch_size, 1, num_input_features, num_input_frames].
+
+        Returns:
+            x: Tensor of shape [batch_size, num_instruments, num_input_frames].
+        """
         x = self.conv_1(x)
         x = self.conv_2(x)
 
@@ -133,7 +148,11 @@ class Reshape(nn.Module):
 
 
 @hydra.main(config_path="../conf", config_name="config")
-def main(cfg: DictConfig) -> None:
+def test(cfg: DictConfig) -> None:
+    """Simple test function for our model.
+    Args:
+        cfg: Hydra config.
+    """
     num_instruments = 7
     num_input_features = 128
     num_input_frames = 14
@@ -156,4 +175,4 @@ def main(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    test()
