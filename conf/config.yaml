@@ -9,7 +9,11 @@ Mixer:
   dataset: "Medley-solos-DB"
   num_epochs: 10
   num_instruments: [1, 4]
+  num_samples_per_file: 131072
   Mix:
+    dft_size: 2048
+    hopsize: 1024
+    num_frames: 14
     sr: 44100
     # options: CQT, STFT, MEL
     feature: "CQT"
