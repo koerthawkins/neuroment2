@@ -4,6 +4,10 @@
 outputs/*
 !/outputs/.gitkeep
 
+# model files
+models/*
+!/models/.gitkeep
+
 ## Audio files
 *.wav
 *.WAV

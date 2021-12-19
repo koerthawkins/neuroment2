@@ -17,3 +17,15 @@ Mixer:
     sr: 44100
     # options: CQT, STFT, MEL
     feature: "CQT"
+
+train:
+  model_dir: "models/"
+  training_steps: 1000
+  continue_training: True
+  num_workers: 2
+  batch_size: 16
+
+optimizer:
+  learning_rate: 0.001
+  beta: [0.9, 0.999]
+  weight_decay: 0.001

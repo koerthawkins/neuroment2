@@ -4,6 +4,7 @@ import logging as log
 from omegaconf import DictConfig
 import os
 import torch
+from torch.utils.data import DataLoader
 
 from neuroment2 import *
 
@@ -78,6 +79,16 @@ def train(cfg: DictConfig) -> None:
     if state_dict_model:
         optimizer.load_state_dict(state_dict_model["optimizer"])
 
+    train_dataset = Neuroment2Dataset(
+        "data/pickle/",
+        "training",
+    )
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=cfg.train.batch_size,
+        shuffle=True,
+        num_workers=cfg.train.num_workers,
+    )
 
 def validation():
     pass
