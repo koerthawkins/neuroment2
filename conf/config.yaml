@@ -7,9 +7,16 @@ defaults:
 Mixer:
   data_path: "data/"
   dataset: "Medley-solos-DB"
-  num_epochs: 10
+  num_epochs: 1
   num_instruments: [1, 4]
   num_samples_per_file: 131072
+  num_mixes_per_pickle: 1000
+  type: "all"
+  feature: "CQT"
+  num_mels: 128
+  f_min: 27.5
+  f_max: 20000
+  window: "hann"
   Mix:
     dft_size: 2048
     hopsize: 1024
