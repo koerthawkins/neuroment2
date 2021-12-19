@@ -41,7 +41,7 @@ class Neuroment2Dataset(Dataset):
         with open(self.pickle_files[idx], "rb") as f:
             data = pickle.load(f)
 
-        features = data.feature
-        labels = data.labels
+        features = data.feature_mix
+        labels = data.labels_mix
 
-        return features, labels
+        return features.astype("float32"), labels.astype("float32")
