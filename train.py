@@ -82,6 +82,7 @@ def train(cfg: DictConfig) -> None:
     if state_dict_model:
         optimizer.load_state_dict(state_dict_model["optimizer"])
 
+    # create training dataset and loader
     train_dataset = Neuroment2Dataset(
         "data/pickle/",
         "training",
@@ -90,6 +91,18 @@ def train(cfg: DictConfig) -> None:
         train_dataset,
         batch_size=cfg.train.batch_size,
         shuffle=True,
+        num_workers=cfg.train.num_workers,
+    )
+
+    # create validation dataset and loader
+    val_dataset = Neuroment2Dataset(
+        "data/pickle/",
+        "validation",
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=cfg.train.batch_size,
+        shuffle=False,
         num_workers=cfg.train.num_workers,
     )
 
@@ -111,7 +124,7 @@ def train(cfg: DictConfig) -> None:
         epoch += 1
 
         # create new progress bar
-        prog_bar = tqdm(total=len(train_loader), desc="Epoch: %d" % epoch)
+        prog_bar = tqdm(total=len(train_loader), desc="Training epoch: %d" % epoch)
 
         for i_batch, (x, y) in enumerate(train_loader):
             # increase step counter
@@ -168,9 +181,61 @@ def train(cfg: DictConfig) -> None:
                 )
                 log.info("Saved model checkpoint '%s'." % checkpoint_path)
 
+            # run validation loop
+            if step % cfg.train.validation_interval % 0:
+                validation(
+                    cfg,
+                    model,
+                    val_loader,
+                    val_writer,
+                    step,
+                    epoch,
+                )
 
-def validation():
-    pass
+
+def validation(
+    cfg: DictConfig,
+    model: NeuromentModel,
+    val_loader: DataLoader,
+    val_writer: SummaryWriter,
+    step: int,
+    epoch: int,
+):
+    loss_fn = torch.nn.MSELoss()
+
+    with torch.no_grad():
+        # create new progress bar
+        prog_bar = tqdm(total=len(val_loader), desc="Validation epoch: %d" % epoch)
+
+        # init loss_list
+        loss_list = []
+
+        for i_batch, (x, y) in enumerate(val_loader):
+            # predict
+            y_pred = model(x)
+
+            # compute loss
+            loss = loss_fn(y_pred, y)
+
+            # compute average loss over the last n_batches_per_average batches
+            loss_list.append(loss)
+            if len(loss_list) > cfg.train.n_batches_per_average:
+                loss_list = loss_list[-cfg.train.n_batches_per_average:]
+            avg_loss = np.mean(loss_list)
+
+            # update progress bar. don't force-refresh because that will create a new line
+            prog_bar.set_postfix(
+                {
+                    "Batch": i_batch + 1,
+                    'Loss (avg)': avg_loss,
+                },
+                refresh=False,
+            )
+            prog_bar.update(1)
+
+            # log losses to TensorBoard SummaryWriter
+            val_writer.add_scalar("loss", loss, global_step=step)
+            val_writer.add_scalar("avg_loss", avg_loss, global_step=step)
 
 
 if __name__ == "__main__":
