@@ -8,18 +8,23 @@ Mixer:
   data_path: "data/"
   dataset: "Medley-solos-DB"
   num_epochs: 1
-  num_instruments: [1, 4]
+  num_instruments_mix: [1, 4]
+  num_instruments: 8
   num_samples_per_file: 131072
   num_mixes_per_pickle: 1000
-  type: "all"
-  feature: "CQT"
+  type: "training"
+  feature: "MEL"
   num_mels: 128
   f_min: 27.5
   f_max: 20000
   window: "hann"
+  center: False
+  num_bins_per_octave: 24
+  num_octaves: 8
   Mix:
     dft_size: 2048
     hopsize: 1024
     num_frames: 14
     sr: 44100
+    save_wav_data: True
     # options: CQT, STFT, MEL
