@@ -4,6 +4,14 @@
 outputs/*
 !/outputs/.gitkeep
 
+# Model files
+models/*
+!/models/.gitkeep
+
+# Log files (also TensorBoard)
+logs/*
+!/logs/.gitkeep
+
 ## Audio files
 *.wav
 *.WAV

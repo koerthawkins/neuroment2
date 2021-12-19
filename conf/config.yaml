@@ -28,3 +28,18 @@ Mixer:
     sr: 44100
     save_wav_data: True
     # options: CQT, STFT, MEL
+    feature: "CQT"
+
+train:
+  model_dir: "models/"
+  tensorboard_dir: "logs/"
+  training_steps: 1000
+  continue_training: True
+  num_workers: 2
+  batch_size: 16
+  n_batches_per_average: 100
+
+optimizer:
+  learning_rate: 0.001
+  beta: [0.9, 0.999]
+  weight_decay: 0.001
