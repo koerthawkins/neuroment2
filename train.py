@@ -7,6 +7,7 @@ import os
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 from neuroment2 import *
 
@@ -81,6 +82,7 @@ def train(cfg: DictConfig) -> None:
     if state_dict_model:
         optimizer.load_state_dict(state_dict_model["optimizer"])
 
+    # create training dataset and loader
     train_dataset = Neuroment2Dataset(
         "data/pickle/",
         "training",
@@ -89,6 +91,18 @@ def train(cfg: DictConfig) -> None:
         train_dataset,
         batch_size=cfg.train.batch_size,
         shuffle=True,
+        num_workers=cfg.train.num_workers,
+    )
+
+    # create validation dataset and loader
+    val_dataset = Neuroment2Dataset(
+        "data/pickle/",
+        "validation",
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=cfg.train.batch_size,
+        shuffle=False,
         num_workers=cfg.train.num_workers,
     )
 
@@ -109,7 +123,10 @@ def train(cfg: DictConfig) -> None:
         # we hit a new epoch if we land here
         epoch += 1
 
-        for (x, y) in train_loader:
+        # create new progress bar
+        prog_bar = tqdm(total=len(train_loader), desc="Training epoch: %d" % epoch)
+
+        for i_batch, (x, y) in enumerate(train_loader):
             # increase step counter
             step += 1
 
@@ -136,11 +153,89 @@ def train(cfg: DictConfig) -> None:
                 loss_list = loss_list[-cfg.train.n_batches_per_average:]
             avg_loss = np.mean(loss_list)
 
-            print("Loss: %.5f" % avg_loss)
+            # update progress bar. don't force-refresh because that will create a new line
+            prog_bar.set_postfix(
+                {
+                    "Batch": i_batch + 1,
+                    'Loss (avg)': avg_loss,
+                },
+                refresh=False,
+            )
+            prog_bar.update(1)
+
+            # log losses to TensorBoard SummaryWriter
+            train_writer.add_scalar("loss", loss, global_step=step)
+            train_writer.add_scalar("avg_loss", avg_loss, global_step=step)
+
+            # save checkpoint
+            if step % cfg.train.model_checkpoint_interval == 0:
+                checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_dir, step)
+                torch.save(
+                    {
+                        "model": model.state_dict(),
+                        "optimizer": optimizer.state_dict(),
+                        "step": step,
+                        "epoch": epoch,
+                    },
+                    checkpoint_path,
+                )
+                log.info("Saved model checkpoint '%s'." % checkpoint_path)
+
+            # run validation loop
+            if step % cfg.train.validation_interval % 0:
+                validation(
+                    cfg,
+                    model,
+                    val_loader,
+                    val_writer,
+                    step,
+                    epoch,
+                )
 
 
-def validation():
-    pass
+def validation(
+    cfg: DictConfig,
+    model: NeuromentModel,
+    val_loader: DataLoader,
+    val_writer: SummaryWriter,
+    step: int,
+    epoch: int,
+):
+    loss_fn = torch.nn.MSELoss()
+
+    with torch.no_grad():
+        # create new progress bar
+        prog_bar = tqdm(total=len(val_loader), desc="Validation epoch: %d" % epoch)
+
+        # init loss_list
+        loss_list = []
+
+        for i_batch, (x, y) in enumerate(val_loader):
+            # predict
+            y_pred = model(x)
+
+            # compute loss
+            loss = loss_fn(y_pred, y)
+
+            # compute average loss over the last n_batches_per_average batches
+            loss_list.append(loss)
+            if len(loss_list) > cfg.train.n_batches_per_average:
+                loss_list = loss_list[-cfg.train.n_batches_per_average:]
+            avg_loss = np.mean(loss_list)
+
+            # update progress bar. don't force-refresh because that will create a new line
+            prog_bar.set_postfix(
+                {
+                    "Batch": i_batch + 1,
+                    'Loss (avg)': avg_loss,
+                },
+                refresh=False,
+            )
+            prog_bar.update(1)
+
+            # log losses to TensorBoard SummaryWriter
+            val_writer.add_scalar("loss", loss, global_step=step)
+            val_writer.add_scalar("avg_loss", avg_loss, global_step=step)
 
 
 if __name__ == "__main__":
