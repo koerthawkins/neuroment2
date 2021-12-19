@@ -7,6 +7,7 @@ import os
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 from neuroment2 import *
 
@@ -109,7 +110,10 @@ def train(cfg: DictConfig) -> None:
         # we hit a new epoch if we land here
         epoch += 1
 
-        for (x, y) in train_loader:
+        # create new progress bar
+        prog_bar = tqdm(total=len(train_loader), desc="Epoch: %d" % epoch)
+
+        for i_batch, (x, y) in enumerate(train_loader):
             # increase step counter
             step += 1
 
@@ -136,7 +140,15 @@ def train(cfg: DictConfig) -> None:
                 loss_list = loss_list[-cfg.train.n_batches_per_average:]
             avg_loss = np.mean(loss_list)
 
-            print("Loss: %.5f" % avg_loss)
+            # update progress bar. don't force-refresh because that will create a new line
+            prog_bar.set_postfix(
+                {
+                    "Batch": i_batch + 1,
+                    'Loss (avg)': avg_loss,
+                },
+                refresh=False,
+            )
+            prog_bar.update(1)
 
 
 def validation():
