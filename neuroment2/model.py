@@ -22,71 +22,41 @@ class NeuromentModel(nn.Module):
         self.num_input_frames = num_input_frames
         self.use_batch_norm = use_batch_norm
 
-        # if self.use_batch_norm:
-        #     self.fc_in = nn.Sequential(
-        #         nn.Linear(self.num_input_features, 128),
-        #         SwapDim((0, 2, 1)),
-        #         nn.BatchNorm1d(num_features=128),
-        #         SwapDim((0, 2, 1)),
-        #         nn.ReLU(),
-        #     )
-        # else:
-        #     self.fc_in = nn.Sequential(
-        #         nn.Linear(self.n_input_features, 128),
-        #         nn.ReLU(),
-        #     )
+        pool_size_1 = 2
+        pool_size_2 = 2
 
         self.conv_1 = ConvBlock(1, 16, (3, 3), stride=(1, 1), padding=(3 // 2, 3 // 2))
         self.conv_2 = ConvBlock(16, 32, (3, 3), stride=(1, 1), padding=(3 // 2, 3 // 2))
 
-        self.pool_1 = nn.MaxPool2d(kernel_size=(2, 1))
+        self.pool_1 = nn.MaxPool2d(kernel_size=(pool_size_1, 1))
 
         self.conv_3 = ConvBlock(32, 48, (5, 5), stride=(1, 1), padding=(5 // 2, 5 // 2))
         self.conv_4 = ConvBlock(48, 64, (5, 5), stride=(1, 1), padding=(5 // 2, 5 // 2))
 
-        self.pool_2 = nn.MaxPool2d(kernel_size=(4, 1))
+        self.pool_2 = nn.MaxPool2d(kernel_size=(pool_size_2, 1))
 
         self.conv_5 = ConvBlock(64, 80, (7, 7), stride=(1, 1), padding=(7 // 2, 7 // 2))
         self.conv_6 = ConvBlock(80, 96, (7, 7), stride=(1, 1), padding=(7 // 2, 7 // 2))
 
-        # self.flatten = nn.Flatten()
-        # the last dimension of a multi-dimensional input for torch.nn.Linear must be the
-        # num_features dimension
-        # self.swap_dim = SwapDim(1, 3)
-        # self.out = nn.Sequential(
-        #     nn.Linear(int(96),
-        #     nn.Sigmoid(),
-        # )
-
         self.flatten = nn.Flatten()
 
         self.out = nn.Sequential(
-            nn.Linear(in_features=int(96 * self.num_input_frames * self.num_input_features // 8),
+            nn.Linear(in_features=int(96 * self.num_input_frames * self.num_input_features
+                                      // (pool_size_1 * pool_size_2)),
                       out_features=int(self.num_instruments * self.num_input_frames),),
             nn.Sigmoid(),
-            Reshape((self.num_instruments, self.num_input_frames))
+            Reshape((-1, self.num_instruments, self.num_input_frames))
         )
 
-        # self.conv_1 = nn.Conv2d(
-        #     1, 16, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1)
-        # )64
-        # self.bn_1 = nn.BatchNorm2d(num_features=16)
-        # self.act_1 = nn.ReLU()
-        #
-        # self.conv_2 = nn.Conv2d(16, 32, (3, 3), stride=(1, 1), padding=(1, 1))
-        # self.bn_2 = nn.BatchNorm2d(num_features=32)
-        # self.act_2 = nn.ReLU()
-
-        # create vars for summary()
-        # num_input_features =
-
         summary_str = summary(
-            self, input_size=(
-                1,
+            self,
+            input_size=(
                 1,
                 self.num_input_features,
                 self.num_input_frames,
-            ), verbose=0
+            ),
+            verbose=0,
+            batch_dim=0,
         )
         log.info(summary_str)
 
@@ -179,10 +149,10 @@ def main(cfg: DictConfig) -> None:
     input_tensor = torch.Tensor(
         np.random.normal(size=[batch_size, 1, num_input_features, num_input_frames])
     )
-    log.info("Input shape: %s" % str(input_tensor.shape))
+    log.info("Input shape: %s [batch_size, n_channels, n_features, n_frames]" % str(input_tensor.shape))
 
     output_tensor = model(input_tensor)
-    log.info("Output shape: %s" % str(output_tensor.shape))
+    log.info("Output shape: %s [batch_size, n_classes, n_frames]" % str(output_tensor.shape))
 
 
 if __name__ == "__main__":
