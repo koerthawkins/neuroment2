@@ -1,6 +1,7 @@
 import glob
 import os
 import pickle as pk
+import yaml
 
 import numpy as np
 from librosa.core import audio, load
@@ -102,12 +103,11 @@ class Mixer:
         dataset=None,
         type=None,
         num_samples_per_file=None,
-        num_mixes_per_pickle=None,
         **kwargs,
     ):
+        self.cfg = kwargs
         self.cfg_mixes = kwargs["Mix"]
         self.num_samples_per_file = num_samples_per_file
-        self.num_mixes_per_pickle = num_mixes_per_pickle
         self.num_observation_windows = self.get_num_observation_windows()
 
         self.feature_generator = FeatureGenerator(kwargs)
@@ -147,41 +147,58 @@ class Mixer:
         self.file_list = files_observation_windows
 
     def create_mixes(self):
-        pickle_counter = 0
-        mixes = []
         for _ in range(self.num_epochs):
             file_list_temp = self.file_list.copy()
             while len(file_list_temp) >= self.max_num_instruments:
                 num_files_left = len(file_list_temp)
                 num_instruments_mix = np.random.randint(
-                    self.min_num_instruments, self.max_num_instruments
+                    self.min_num_instruments, self.max_num_instruments + 1
                 )
                 indices_file_list = np.random.randint(
-                    0, num_files_left - 1, size=num_instruments_mix
+                    0, num_files_left, size=num_instruments_mix
                 )
                 files_mix = []
                 for index in indices_file_list:
                     files_mix.append(file_list_temp[index])
                 delete_by_indices(file_list_temp, indices_file_list)
-                mixes.append(
-                    Mix(
-                        files_mix,
-                        self.num_instruments,
-                        self.feature_generator,
-                        self.mix_id,
-                        self.dataset,
-                        **self.cfg_mixes,
-                    )
+                mix = Mix(
+                    files_mix,
+                    self.num_instruments,
+                    self.feature_generator,
+                    self.mix_id,
+                    self.dataset,
+                    **self.cfg_mixes,
                 )
-                if len(mixes) >= self.num_mixes_per_pickle:
-                    with open(
-                        f"../pickle/{self.type}_mix_batch_{pickle_counter}.pkl", "wb"
-                    ) as f:
-                        pk.dump(mixes, f)
-                    pickle_counter += 1
-                    mixes = []
+                with open(f"../pickle/{self.type}_mix_{self.mix_id}.pkl", "wb") as f:
+                    pk.dump(mix, f)
                 self.mix_id += 1
-        print()
+
+        self.save_statistics()
+
+    def save_statistics(self):
+        statistics = {}
+        statistics["num_pickle"] = self.mix_id
+        statistics["num_instruments"] = self.num_instruments
+        if self.cfg["center"]:
+            statistics["num_frames_per_observation"] = self.cfg_mixes["num_frames"] + 2
+        else:
+            statistics["num_frames_per_observation"] = self.cfg_mixes["num_frames"]
+
+        if self.cfg["feature"] == "CQT":
+            statistics["num_features_per_observation"] = (
+                self.cfg["num_octaves"] * self.cfg["num_bins_per_octave"]
+            )
+        elif self.cfg["feature"] == "STFT":
+            statistics["num_features_per_observation"] = self.dft_size // 2 + 1
+        elif self.cfg["feature"] == "MEL":
+            statistics["num_features_per_observation"] = self.cfg["num_mels"]
+
+        statistics["feature"] = self.cfg["feature"]
+        statistics["dft_size"] = self.cfg_mixes["dft_size"]
+        statistics["hopsize"] = self.cfg_mixes["hopsize"]
+        statistics["sr"] = self.cfg_mixes["sr"]
+        with open("../pickle/statistics.yml", "w") as outfile:
+            yaml.dump(statistics, outfile, default_flow_style=False)
 
     def get_num_observation_windows(self):
         dft_size = self.cfg_mixes["dft_size"]
@@ -234,9 +251,12 @@ class Mix:
         )
 
     def calculate_feature(self, feature_generator, save_wav_data):
-        duration = (self.dft_size + (self.num_frames - 1) * self.hopsize) / self.sr
+        # TODO Try to fix +1 offset
+        duration = (
+            (self.dft_size + (self.num_frames - 1) * self.hopsize) + 1
+        ) / self.sr
 
-        levels = np.clip(np.random.normal(0.5, 0.1, 3), 0.0, 1.0)
+        levels = np.clip(np.random.normal(0.5, 0.1, self.num_files), 0.0, 1.0)
         levels /= np.sum(levels)
         for i, (file, offset) in enumerate(self.files_mix):
             audio_data, _ = load(
@@ -251,11 +271,11 @@ class Mix:
             self.envelopes.append(envelope)
             self.label_list.append(label)
 
-        audio_mix = np.sum(np.stack(self.wav_files), axis=0)
+        audio_mix = np.sum(np.stack(self.wav_files) * levels[:, np.newaxis], axis=0)
         feature_mix, _ = feature_generator.generate(audio_mix)
         labels_mix = np.zeros((self.num_instruments, feature_mix.shape[1]))
         for i in range(self.num_files):
             labels_mix[self.label_list[i], :] = self.envelopes[i]
-        if save_wav_data:
+        if not save_wav_data:
             self.wav_files = []
         return feature_mix, labels_mix

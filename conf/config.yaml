@@ -6,13 +6,13 @@ defaults:
 
 Mixer:
   data_path: "data/"
-  dataset: "Medley-solos-DB"
+  dataset: "Medley-solos-DB_small"
   num_epochs: 1
   num_instruments_mix: [1, 4]
   num_instruments: 8
   num_samples_per_file: 131072
-  num_mixes_per_pickle: 1000
   type: "training"
+  # options: CQT, STFT, MEL
   feature: "MEL"
   num_mels: 128
   f_min: 27.5
@@ -27,8 +27,6 @@ Mixer:
     num_frames: 14
     sr: 44100
     save_wav_data: True
-    # options: CQT, STFT, MEL
-    feature: "CQT"
 
 train:
   model_dir: "models/"
