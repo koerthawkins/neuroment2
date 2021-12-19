@@ -29,6 +29,7 @@ Mixer:
     save_wav_data: True
 
 train:
+  dataset_dir: "data/pickle/"
   model_dir: "models/"
   tensorboard_dir: "logs/"
   training_steps: 1000

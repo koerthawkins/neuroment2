@@ -155,7 +155,7 @@ def train(cfg: DictConfig) -> None:
             optimizer.step()
 
             # compute average loss over the last n_batches_per_average batches
-            loss_list.append(loss)
+            loss_list.append(float(loss))
             if len(loss_list) > cfg.train.n_batches_per_average:
                 loss_list = loss_list[-cfg.train.n_batches_per_average:]
             avg_loss = np.mean(loss_list)
@@ -189,7 +189,7 @@ def train(cfg: DictConfig) -> None:
                 log.info("Saved model checkpoint '%s'." % checkpoint_path)
 
             # run validation loop
-            if step % cfg.train.validation_interval % 0:
+            if step % cfg.train.validation_interval == 0:
                 validation(
                     cfg,
                     model,
@@ -225,7 +225,7 @@ def validation(
             loss = loss_fn(y_pred, y)
 
             # compute average loss over the last n_batches_per_average batches
-            loss_list.append(loss)
+            loss_list.append(float(loss))
             if len(loss_list) > cfg.train.n_batches_per_average:
                 loss_list = loss_list[-cfg.train.n_batches_per_average:]
             avg_loss = np.mean(loss_list)
