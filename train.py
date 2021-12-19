@@ -150,6 +150,24 @@ def train(cfg: DictConfig) -> None:
             )
             prog_bar.update(1)
 
+            # log losses to TensorBoard SummaryWriter
+            train_writer.add_scalar("loss", loss, global_step=step)
+            train_writer.add_scalar("avg_loss", avg_loss, global_step=step)
+
+            # save checkpoint
+            if step % cfg.train.model_checkpoint_interval == 0:
+                checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_dir, step)
+                torch.save(
+                    {
+                        "model": model.state_dict(),
+                        "optimizer": optimizer.state_dict(),
+                        "step": step,
+                        "epoch": epoch,
+                    },
+                    checkpoint_path,
+                )
+                log.info("Saved model checkpoint '%s'." % checkpoint_path)
+
 
 def validation():
     pass
