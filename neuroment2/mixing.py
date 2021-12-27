@@ -2,7 +2,7 @@ import glob
 import os
 import pickle as pk
 import yaml
-
+import logging as log
 import numpy as np
 from librosa.core import audio, load
 import librosa as lb
@@ -97,10 +97,10 @@ class Mixer:
     def __init__(
         self,
         num_epochs=None,
-        data_path=None,
+        pickle_path=None,
         num_instruments_mix=None,
         num_instruments=None,
-        dataset=None,
+        raw_data_path=None,
         type=None,
         num_samples_per_file=None,
         **kwargs,
@@ -113,8 +113,8 @@ class Mixer:
         self.feature_generator = FeatureGenerator(kwargs)
 
         self.num_epochs = num_epochs
-        self.data_path = data_path
-        self.dataset = dataset
+        self.pickle_path = pickle_path
+        self.raw_data_path = raw_data_path
         self.type = type
         assert (
             len(num_instruments_mix) == 2
@@ -134,45 +134,63 @@ class Mixer:
         Args:
             type (str): type of data
         """
-        os.chdir(self.data_path + self.dataset)
         files = []
-        for file in glob.glob("*.wav"):
+
+        # get raw audio files
+        for file in glob.glob(os.path.join(self.raw_data_path, "*.wav")):
             if type in file:
                 files.append(file)
-        num_files = len(files)
+
+        # for each audio file we generate a list with all possible observation windows
         files_observation_windows = []
-        for f in range(num_files):
+        for f in range(len(files)):
             for i in range(self.num_observation_windows):
                 files_observation_windows.append([files[f], i])
+
         self.file_list = files_observation_windows
 
     def create_mixes(self):
+        # create output directory
+        os.makedirs(self.pickle_path, exist_ok=True)
+
+        # loop through dataset epochs
         for _ in range(self.num_epochs):
+            # we create a copy of the original file list where we pop files from
             file_list_temp = self.file_list.copy()
+
+            # generate files until the max number of instruments can not be satisfied anymore
             while len(file_list_temp) >= self.max_num_instruments:
-                num_files_left = len(file_list_temp)
                 num_instruments_mix = np.random.randint(
                     self.min_num_instruments, self.max_num_instruments + 1
                 )
                 indices_file_list = np.random.randint(
-                    0, num_files_left, size=num_instruments_mix
+                    0, len(file_list_temp), size=num_instruments_mix
                 )
+
                 files_mix = []
                 for index in indices_file_list:
                     files_mix.append(file_list_temp[index])
                 delete_by_indices(file_list_temp, indices_file_list)
+
+                # generate the mix
                 mix = Mix(
                     files_mix,
                     self.num_instruments,
                     self.feature_generator,
                     self.mix_id,
-                    self.dataset,
+                    self.raw_data_path,
                     **self.cfg_mixes,
                 )
-                with open(f"../pickle/{self.type}_mix_{self.mix_id}.pkl", "wb") as f:
+
+                # write the generated mix to a pickle file
+                pickle_path = os.path.join(self.pickle_path, f"{self.type}_mix_{self.mix_id}.pkl")
+                with open(pickle_path, "wb") as f:
                     pk.dump(mix, f)
+                log.info("Wrote '%s'." % pickle_path)
+
                 self.mix_id += 1
 
+        # save statistics to a separate YAML file s.t. we can import the metadata for training
         self.save_statistics()
 
     def save_statistics(self):
@@ -197,8 +215,11 @@ class Mixer:
         statistics["dft_size"] = self.cfg_mixes["dft_size"]
         statistics["hopsize"] = self.cfg_mixes["hopsize"]
         statistics["sr"] = self.cfg_mixes["sr"]
-        with open("../pickle/statistics.yml", "w") as outfile:
+
+        statistics_path = os.path.join(self.pickle_path, "statistics.yml")
+        with open(statistics_path, "w") as outfile:
             yaml.dump(statistics, outfile, default_flow_style=False)
+        log.info("Wrote '%s'." % statistics_path)
 
     def get_num_observation_windows(self):
         dft_size = self.cfg_mixes["dft_size"]
