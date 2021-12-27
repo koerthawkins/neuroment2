@@ -2,11 +2,17 @@
 
 ## Hydra outputs
 outputs/*
+multirun/*
 !/outputs/.gitkeep
+!/multirun/.gitkeep
 
 # Model files
 models/*
 !/models/.gitkeep
+
+# Data files
+data/*
+!/data/.gitkeep
 
 # Log files (also TensorBoard)
 logs/*
