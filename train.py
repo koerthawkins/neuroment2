@@ -40,7 +40,7 @@ def train(cfg: DictConfig) -> None:
 
     # create model directory
     os.makedirs(cfg.train.model_save_dir, exist_ok=True)
-    log.info("Model directory: %s" % os.path.abspath(cfg.train.model_save_dir))
+    log.info("Model saving directory: %s" % os.path.abspath(cfg.train.model_save_dir))
 
     # if we want to continue training and there are saved models already get the one with the most steps
     # we also need to resolve the model_dir because it is not in hydra CWD
@@ -73,7 +73,7 @@ def train(cfg: DictConfig) -> None:
         epoch = -1
 
         log.info("No model checkpoint found in '%s', starting training from scratch."
-                 % cfg.train.model_save_dir)
+                 % os.path.abspath(cfg.train.model_save_dir))
 
     # init optimizer. we use Adam with weight decay
     optimizer = torch.optim.AdamW(
@@ -92,7 +92,7 @@ def train(cfg: DictConfig) -> None:
 
     # create training dataset and loader
     train_dataset = Neuroment2Dataset(
-        cfg.train.dataset_dir,
+        resolved_dataset_dir,
         "training",
     )
     train_loader = DataLoader(
@@ -104,7 +104,7 @@ def train(cfg: DictConfig) -> None:
 
     # create validation dataset and loader
     val_dataset = Neuroment2Dataset(
-        cfg.train.dataset_dir,
+        resolved_dataset_dir,
         "validation",
     )
     val_loader = DataLoader(
