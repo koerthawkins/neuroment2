@@ -50,6 +50,13 @@ train:
   gpu_index: 0
 
 inference:
+  # directory with audio files to run inference on
+  # predictions will also be written there!
+  audio_dir: ""
+  # full path to model we want to use for prediction
+  model_path: ""
+  # path where predictions will be saved too
+  predictions_dir: ""
   gpu_index: 0
 
 optimizer:
