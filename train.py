@@ -220,6 +220,9 @@ def validation(
         loss_list = []
 
         for i_batch, (x, y) in enumerate(val_loader):
+            # add channel dimension
+            x = torch.unsqueeze(x, 1)
+            
             # predict
             y_pred = model(x)
 
