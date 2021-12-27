@@ -36,9 +36,10 @@ def inference(cfg: DictConfig) -> None:
     # create model
     model = NeuromentModel(
         num_instruments=dataset_stats["num_instruments"],
-        num_input_features=dataset_stats["num_input_features"],
-        num_input_frames=dataset_stats["num_input_frames"],
+        num_input_features=dataset_stats["num_features_per_observation"],
+        num_input_frames=dataset_stats["num_frames_per_observation"],
     )
+    model.load_state_dict(state_dict_model["model"])
     model.to(device)
 
     # create feature generator
@@ -52,74 +53,29 @@ def inference(cfg: DictConfig) -> None:
     model.eval()
 
     # get list of audio files
-    inference_file_list = glob.glob(os.path.join(cfg.inference.audio_dir, ".{wav,flac,mp3,WAV,FLAC,MP3}"))
+    inference_file_list = []
+    for ending in ["wav", "flac", "mp3", "WAV", "FLAC", "MP3"]:
+        inference_file_list.extend(glob.glob(os.path.join(cfg.inference.audio_dir, "*." + ending)))
 
     # make progbar
     prog_bar = tqdm(total=len(inference_file_list), desc="Predicting...")
 
-    for input_file in inference_file_list:
-        # load raw audio
-        audio, _ = lb.load(input_file, sr=dataset_stats.sr, mono=True,)
-
-        # generate features
-        features, envelope_ref = feature_gen.generate(audio)
-
-        # predict
-        envelope_pred = model(features)
-
-        # create new progress bar
-        prog_bar.update(1)
-
-
-
-def validation(
-    cfg: DictConfig,
-    model: NeuromentModel,
-    val_loader: DataLoader,
-    val_writer: SummaryWriter,
-    step: int,
-    epoch: int,
-    device: torch.device,
-):
-    loss_fn = torch.nn.MSELoss()
-
     with torch.no_grad():
-        # create new progress bar
-        prog_bar = tqdm(total=len(val_loader), desc="Validation epoch: %d, step: %d" % (epoch, step))
+        for input_file in inference_file_list:
+            # load raw audio
+            audio, _ = lb.load(input_file, sr=dataset_stats["sr"], mono=True,)
 
-        # init loss_list
-        loss_list = []
+            # generate features
+            features, envelope_ref = feature_gen.generate(audio)
 
-        for i_batch, (x, y) in enumerate(val_loader):
-            # move tensors to right device
-            x = x.to(device)
-            y = y.to(device)
+            # convert to pytorch tensor and add batch and channel dimensions
+            features = torch.Tensor(features).unsqueeze(0).unsqueeze(0)
 
             # predict
-            y_pred = model(x)
+            envelope_pred = model(features[:, :, :, :14])
 
-            # compute loss
-            loss = loss_fn(y_pred, y)
-
-            # compute average loss over the last n_batches_per_average batches
-            loss_list.append(float(loss))
-            if len(loss_list) > cfg.train.n_batches_per_average:
-                loss_list = loss_list[-cfg.train.n_batches_per_average:]
-            avg_loss = np.mean(loss_list)
-
-            # update progress bar. don't force-refresh because that will create a new line
-            prog_bar.set_postfix(
-                {
-                    "Batch": i_batch + 1,
-                    'Loss (avg)': avg_loss,
-                },
-                refresh=False,
-            )
+            # create new progress bar
             prog_bar.update(1)
-
-            # log losses to TensorBoard SummaryWriter
-            val_writer.add_scalar("loss", loss, global_step=step)
-            val_writer.add_scalar("avg_loss", avg_loss, global_step=step)
 
 
 if __name__ == "__main__":
