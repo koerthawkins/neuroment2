@@ -177,7 +177,7 @@ def train(cfg: DictConfig) -> None:
 
             # save checkpoint
             if step % cfg.train.model_checkpoint_interval == 0:
-                checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_dir, step)
+                checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
                 torch.save(
                     {
                         "model": model.state_dict(),
