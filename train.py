@@ -140,9 +140,6 @@ def train(cfg: DictConfig) -> None:
             x = torch.autograd.Variable(x.to(device, non_blocking=True))
             y = torch.autograd.Variable(y.to(device, non_blocking=True))
 
-            # add channel dimension
-            x = torch.unsqueeze(x, 1)
-
             # reset gradient
             optimizer.zero_grad()
 
@@ -199,6 +196,7 @@ def train(cfg: DictConfig) -> None:
                     val_writer,
                     step,
                     epoch,
+                    device,
                 )
 
 
@@ -209,20 +207,22 @@ def validation(
     val_writer: SummaryWriter,
     step: int,
     epoch: int,
+    device: torch.device,
 ):
     loss_fn = torch.nn.MSELoss()
 
     with torch.no_grad():
         # create new progress bar
-        prog_bar = tqdm(total=len(val_loader), desc="Validation epoch: %d" % epoch)
+        prog_bar = tqdm(total=len(val_loader), desc="Validation epoch: %d, step: %d" % (epoch, step))
 
         # init loss_list
         loss_list = []
 
         for i_batch, (x, y) in enumerate(val_loader):
-            # add channel dimension
-            x = torch.unsqueeze(x, 1)
-            
+            # move tensors to right device
+            x = x.to(device)
+            y = y.to(device)
+
             # predict
             y_pred = model(x)
 
