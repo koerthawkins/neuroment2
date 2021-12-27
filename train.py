@@ -178,16 +178,7 @@ def train(cfg: DictConfig) -> None:
             # save checkpoint
             if step % cfg.train.model_checkpoint_interval == 0:
                 checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
-                torch.save(
-                    {
-                        "model": model.state_dict(),
-                        "optimizer": optimizer.state_dict(),
-                        "step": step,
-                        "epoch": epoch,
-                    },
-                    checkpoint_path,
-                )
-                log.info("Saved model checkpoint '%s'." % checkpoint_path)
+                _save_model(checkpoint_path, model, optimizer, step, epoch)
 
             # run validation loop
             if step % cfg.train.validation_interval == 0:
@@ -200,6 +191,10 @@ def train(cfg: DictConfig) -> None:
                     epoch,
                     device,
                 )
+
+    # save final model state
+    checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
+    _save_model(checkpoint_path, model, optimizer, step, epoch)
 
 
 def validation(
@@ -250,6 +245,24 @@ def validation(
             # log losses to TensorBoard SummaryWriter
             val_writer.add_scalar("loss", loss, global_step=step)
             val_writer.add_scalar("avg_loss", avg_loss, global_step=step)
+
+
+def _save_model(checkpoint_path, model, optimizer, step, epoch):
+    """ A simple utility function to save a model checkpoint.
+    """
+    torch.save(
+        {
+            "model": model.state_dict(),
+            "optimizer": optimizer.state_dict(),
+            "step": step,
+            "epoch": epoch,
+            "num_instruments": model.num_instruments,
+            "num_input_features": model.num_input_features,
+            "num_input_frames": model.num_input_frames,
+        },
+        checkpoint_path,
+    )
+    log.info("Saved model checkpoint '%s'." % checkpoint_path)
 
 
 if __name__ == "__main__":
