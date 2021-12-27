@@ -6,17 +6,9 @@ multirun/*
 !/outputs/.gitkeep
 !/multirun/.gitkeep
 
-# Model files
-models/*
-!/models/.gitkeep
-
 # Data files
 data/*
 !/data/.gitkeep
-
-# Log files (also TensorBoard)
-logs/*
-!/logs/.gitkeep
 
 ## Audio files
 *.wav
@@ -34,8 +26,9 @@ logs/*
 *.svg
 *.eps
 
-# All pickle files
+## Some other file types
 *.pkl
+*.model
 
 ## Linux temporary files
 *~
