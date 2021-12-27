@@ -27,7 +27,9 @@ def train(cfg: DictConfig) -> None:
     log.info("Selected device: %s" % device)
 
     # read dataset statistics to get model size
-    with open(os.path.join(cfg.train.dataset_dir, "statistics.yml"), "r") as f:
+    # we always derive statistics from training set
+    # TODO check against validation and testing
+    with open(os.path.join(cfg.train.dataset_dir, "training_statistics.yml"), "r") as f:
         dataset_stats = yaml.load(f, Loader=yaml.SafeLoader)
 
     # create model

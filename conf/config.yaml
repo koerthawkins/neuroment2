@@ -10,7 +10,7 @@ Mixer:
   # path where we write generated features and labels to
   pickle_path: "data/pickle/"
   # the type of data we want to generate. options: "training", "validation", "test"
-  type: "training"
+  data_type: "test"
   # number of times we use each raw data file once
   num_epochs: 1
   num_instruments_mix: [1, 4]

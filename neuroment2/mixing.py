@@ -101,7 +101,7 @@ class Mixer:
         num_instruments_mix=None,
         num_instruments=None,
         raw_data_path=None,
-        type=None,
+        data_type=None,
         num_samples_per_file=None,
         **kwargs,
     ):
@@ -115,14 +115,14 @@ class Mixer:
         self.num_epochs = num_epochs
         self.pickle_path = pickle_path
         self.raw_data_path = raw_data_path
-        self.type = type
+        self.data_type = data_type
         assert (
             len(num_instruments_mix) == 2
         ), "boundaries of number of instruments must have a length of 2"
         self.min_num_instruments = num_instruments_mix[0]
         self.max_num_instruments = num_instruments_mix[1]
         self.num_instruments = num_instruments
-        self.create_file_list(type)
+        self.create_file_list(self.data_type)
 
         self.mix_id = 0
         self.create_mixes()
@@ -183,7 +183,7 @@ class Mixer:
                 )
 
                 # write the generated mix to a pickle file
-                pickle_path = os.path.join(self.pickle_path, f"{self.type}_mix_{self.mix_id}.pkl")
+                pickle_path = os.path.join(self.pickle_path, f"{self.data_type}_mix_{self.mix_id}.pkl")
                 with open(pickle_path, "wb") as f:
                     pk.dump(mix, f)
                 log.info("Wrote '%s'." % pickle_path)
@@ -216,7 +216,7 @@ class Mixer:
         statistics["hopsize"] = self.cfg_mixes["hopsize"]
         statistics["sr"] = self.cfg_mixes["sr"]
 
-        statistics_path = os.path.join(self.pickle_path, "statistics.yml")
+        statistics_path = os.path.join(self.pickle_path, "%s_statistics.yml" % self.data_type)
         with open(statistics_path, "w") as outfile:
             yaml.dump(statistics, outfile, default_flow_style=False)
         log.info("Wrote '%s'." % statistics_path)
