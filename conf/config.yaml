@@ -32,8 +32,13 @@ Mixer:  # absolute path to directory with raw audio files from which features ar
     save_wav_data: True
 
 train:
+  # the directory with the pickle files containing features and labels (relative to repository root dir)
   dataset_dir: "data/pickle/"
-  model_dir: "models/"
+  # the path where we load the most recent checkpoint from (relative to repository root dir)
+  model_load_dir: null
+  # the path we will save new models to (relative to hydra CWD)
+  model_save_dir: "models/"
+  # the path where tensorboard logs will be written to (relative to hydra CWD)
   tensorboard_dir: "logs/"
   training_steps: 1000
   continue_training: True

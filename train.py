@@ -15,9 +15,6 @@ from neuroment2 import *
 
 @hydra.main(config_path="conf", config_name="config")
 def train(cfg: DictConfig) -> None:
-    # we want CWD to be the root directory
-    os.chdir(hydra.utils.to_absolute_path("."))
-
     # use GPU if abailable
     if torch.cuda.is_available():
         device = torch.device("cuda:{:d}".format(cfg.train.gpu_index))
@@ -29,7 +26,8 @@ def train(cfg: DictConfig) -> None:
     # read dataset statistics to get model size
     # we always derive statistics from training set
     # TODO check against validation and testing
-    with open(os.path.join(cfg.train.dataset_dir, "training_statistics.yml"), "r") as f:
+    resolved_dataset_dir = os.path.join(hydra.utils.to_absolute_path("."), cfg.train.dataset_dir)
+    with open(os.path.join(resolved_dataset_dir, "training_statistics.yml"), "r") as f:
         dataset_stats = yaml.load(f, Loader=yaml.SafeLoader)
 
     # create model
@@ -41,12 +39,16 @@ def train(cfg: DictConfig) -> None:
     model.to(device)
 
     # create model directory
-    os.makedirs(cfg.train.model_dir, exist_ok=True)
-    log.info("Model directory: %s" % cfg.train.model_dir)
+    os.makedirs(cfg.train.model_save_dir, exist_ok=True)
+    log.info("Model directory: %s" % os.path.abspath(cfg.train.model_save_dir))
 
     # if we want to continue training and there are saved models already get the one with the most steps
-    if cfg.train.continue_training and os.path.isdir(cfg.train.model_dir):
-        pattern = os.path.join(cfg.train.model_dir, "neuroment2_????????.model")
+    # we also need to resolve the model_dir because it is not in hydra CWD
+    if cfg.train.continue_training and cfg.train.model_load_dir:
+        resolved_model_load_dir = os.path.join(hydra.utils.to_absolute_path("."), cfg.train.model_load_dir)
+        pattern = os.path.join(resolved_model_load_dir, "neuroment2_????????.model")
+
+        # get all checkpoints and sort out the one with the most steps
         checkpoint_list = glob.glob(pattern)
         if len(checkpoint_list) > 0:
             model_checkpoint = sorted(checkpoint_list)[-1]
@@ -61,7 +63,7 @@ def train(cfg: DictConfig) -> None:
         step = state_dict_model["step"]
         epoch = state_dict_model["epoch"]
 
-        log.info("Loaded model checkpoint '%s'." % model_checkpoint)
+        log.info("Loaded model checkpoint '%s'." % os.path.abspath(model_checkpoint))
     else:
         state_dict_model = None
 
@@ -71,7 +73,7 @@ def train(cfg: DictConfig) -> None:
         epoch = -1
 
         log.info("No model checkpoint found in '%s', starting training from scratch."
-                 % cfg.train.model_dir)
+                 % cfg.train.model_save_dir)
 
     # init optimizer. we use Adam with weight decay
     optimizer = torch.optim.AdamW(
