@@ -15,6 +15,8 @@ class FeatureGenerator:
     def __init__(
         self, cfg
     ):  # feature:str, sr:int, dft_size:int, hopsize:int, num_mel, window):
+        self.cfg = cfg
+
         self.feature = cfg["feature"]
         self.sr = cfg["Mix"]["sr"]
         self.dft_size = cfg["Mix"]["dft_size"]
@@ -215,6 +217,8 @@ class Mixer:
         statistics["dft_size"] = self.cfg_mixes["dft_size"]
         statistics["hopsize"] = self.cfg_mixes["hopsize"]
         statistics["sr"] = self.cfg_mixes["sr"]
+
+        statistics["feature_generator_cfg"] = self.feature_generator.cfg
 
         statistics_path = os.path.join(self.pickle_path, "%s_statistics.yml" % self.data_type)
         with open(statistics_path, "w") as outfile:

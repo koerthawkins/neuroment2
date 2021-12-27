@@ -256,7 +256,7 @@ def _save_model(checkpoint_path, model, optimizer, step, epoch, dataset_stats):
             "optimizer": optimizer.state_dict(),
             "step": step,
             "epoch": epoch,
-            "dataset_stats": dataset_stats,  # samplerate, hopsize, etc.
+            "dataset_stats": dataset_stats,  # samplerate, hopsize, feature_generator.cfg, etc.
         },
         checkpoint_path,
     )
