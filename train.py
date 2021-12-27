@@ -20,7 +20,7 @@ def train(cfg: DictConfig) -> None:
 
     # use GPU if abailable
     if torch.cuda.is_available():
-        device = torch.device("cuda:{:d}".format(cfg.gpu_index))
+        device = torch.device("cuda:{:d}".format(cfg.train.gpu_index))
     else:
         device = "cpu"
 
@@ -130,7 +130,7 @@ def train(cfg: DictConfig) -> None:
         epoch += 1
 
         # create new progress bar
-        prog_bar = tqdm(total=len(train_loader), desc="Training epoch: %d" % epoch)
+        prog_bar = tqdm(total=len(train_loader), desc="Training epoch: %d, step: %d" % (epoch, step))
 
         for i_batch, (x, y) in enumerate(train_loader):
             # increase step counter
