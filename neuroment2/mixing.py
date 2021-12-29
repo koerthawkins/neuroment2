@@ -28,6 +28,10 @@ class FeatureGenerator:
         self.center = cfg["center"]
         self.num_bins_per_octave = cfg["num_bins_per_octave"]
         self.num_octaves = cfg["num_octaves"]
+        self.envelope_type = cfg["envelope_type"]
+
+        if self.envelope_type not in ["RMS", "SPECTRUM"]:
+            raise ValueError("envelope_type '%s' is invalid!" % self.envelope_type)
 
     def generate(self, audio):
         if self.feature == "CQT":
@@ -50,8 +54,11 @@ class FeatureGenerator:
                 window=self.window,
             )
             cqt /= cqt_lengths[:, None]
-            envelope = np.sum((cqt ** 2.0), axis=0)
             feature = np.log(cqt + 1e-12)
+            if self.envelope_type == "SPECTRUM":
+                envelope = np.sum((cqt ** 2.0), axis=0)
+            else:
+                envelope = self._compute_rms_envelope(audio)
         elif self.feature == "STFT":
             stft = np.abs(
                 lb.core.stft(
@@ -63,8 +70,11 @@ class FeatureGenerator:
                 )
             )
             stft /= self.dft_size
-            envelope = np.sum(stft ** 2.0, axis=0)
             feature = np.log(stft + 1e-12)
+            if self.envelope_type == "SPECTRUM":
+                envelope = np.sum(stft ** 2.0, axis=0)
+            else:
+                envelope = self._compute_rms_envelope(audio)
         elif self.feature == "MEL":
             stft = np.abs(
                 lb.core.stft(
@@ -85,12 +95,27 @@ class FeatureGenerator:
                 norm=1.0,
             )
             mel = np.dot(mel_filter_bank, stft)
-            envelope = np.sum(mel ** 2.0, axis=0)
             feature = np.log(mel + 1e-12)
+            if self.envelope_type == "SPECTRUM":
+                envelope = np.sum(mel ** 2.0, axis=0)
+            else:
+                envelope = self._compute_rms_envelope(audio)
         else:
             raise KeyError("feature type not available")
 
         return feature, envelope
+
+    def _compute_rms_envelope(self, audio: np.ndarray):
+        """Computes the RMS envelope in time domain.
+        Args:
+            audio: audio vector, mono, 1D
+
+        Returns:
+            rms: RMS values (linear, no dB)
+        """
+        rms = lb.feature.rms(audio, frame_length=self.dft_size, hop_length=self.hopsize, center=self.center)[0, :]
+
+        return rms
 
 
 class Mixer:
