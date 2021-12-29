@@ -52,8 +52,8 @@ class NeuromentModel(nn.Module):
             nn.Linear(in_features=int(96 * self.num_input_frames * self.num_input_features
                                       // (pool_size_1 * pool_size_2)),
                       out_features=int(self.num_instruments * self.num_input_frames),),
+            Reshape((-1, self.num_instruments, self.num_input_frames)),
             nn.Sigmoid(),
-            Reshape((-1, self.num_instruments, self.num_input_frames))
         )
 
         summary_str = summary(
