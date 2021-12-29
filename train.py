@@ -120,7 +120,7 @@ def train(cfg: DictConfig) -> None:
     val_writer = SummaryWriter(os.path.join(cfg.train.tensorboard_dir, "val"))
 
     # create loss function
-    loss_fn = torch.nn.MSELoss()
+    loss_fn = torch.nn.BCELoss()
 
     # set model to training mode
     model.train()
