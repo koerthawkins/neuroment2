@@ -2,6 +2,19 @@
 
 A complete rewrite of "Neuroment - Instrument Detection using Neural Networks".
 
+## Dataset
+
+We use the [Medley-solos-DB](https://zenodo.org/record/1344103#.YczLvNso9hE). It contains 8 different instrument classes, sampled at 44.1kHz and with ~21k files in total. The instrument classes are (in this order):
+
+0. clarinet
+1. distorted electric guitar
+2. female singer
+3. flute
+4. piano
+5. tenor saxophone
+6. trumpet
+7. violin
+
 ## Examples
 
 - generate data: `python generate_data.py -m Mixer.raw_data_path=clean_dataset_small Mixer.pickle_path=data/pickle Mixer.data_type=validation,test,training`
