@@ -42,7 +42,9 @@ train:
   model_save_dir: "models/"
   # the path where tensorboard logs will be written to (relative to hydra CWD)
   tensorboard_dir: "logs/"
-  training_steps: 1000
+  # at least one of training_steps or training_epochs must be specified as >= 1
+  training_steps: -1
+  training_epochs: -1
   continue_training: True
   num_workers: 0
   batch_size: 32

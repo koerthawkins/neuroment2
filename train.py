@@ -127,7 +127,10 @@ def train(cfg: DictConfig) -> None:
     # we want to collect the latest 100 losses for averaging
     loss_list = []
 
-    while step < cfg.train.training_steps:
+    # check that stopping criteria are valid
+    assert cfg.train.training_steps >= 1 or cfg.train.training_epochs >= 1
+
+    while step < cfg.train.training_steps or epoch < cfg.train.training_epochs:
         # we hit a new epoch if we land here
         epoch += 1
 
