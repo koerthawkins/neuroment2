@@ -35,6 +35,7 @@ def train(cfg: DictConfig) -> None:
         num_instruments=dataset_stats["num_instruments"],
         num_input_features=dataset_stats["num_features_per_observation"],
         num_input_frames=dataset_stats["num_frames_per_observation"],
+        use_batch_norm=cfg.train.use_batch_norm,
     )
     model.to(device)
 
@@ -137,13 +138,13 @@ def train(cfg: DictConfig) -> None:
         # create new progress bar
         prog_bar = tqdm(total=len(train_loader), desc="Training epoch: %d, step: %d" % (epoch, step))
 
-        for i_batch, (x, y) in enumerate(train_loader):
+        for i_batch, (x, y_ref) in enumerate(train_loader):
             # increase step counter
             step += 1
 
             # tell pytorch to attach gradients to our features and labels
             x = torch.autograd.Variable(x.to(device, non_blocking=True))
-            y = torch.autograd.Variable(y.to(device, non_blocking=True))
+            y_ref = torch.autograd.Variable(y_ref.to(device, non_blocking=True))
 
             # reset gradient
             optimizer.zero_grad()
@@ -152,7 +153,7 @@ def train(cfg: DictConfig) -> None:
             y_pred = model(x)
 
             # compute losses
-            loss = loss_fn(y_pred, y)
+            loss = loss_fn(y_pred, y_ref)
 
             # backwards-propagate loss and update weights in model
             loss.backward()
@@ -181,7 +182,7 @@ def train(cfg: DictConfig) -> None:
             # save checkpoint
             if step % cfg.train.model_checkpoint_interval == 0:
                 checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
-                _save_model(checkpoint_path, model, optimizer, step, epoch, dataset_stats)
+                _save_model(checkpoint_path, model, optimizer, step, epoch, dataset_stats, cfg)
 
             # run validation loop
             if step % cfg.train.validation_interval == 0:
@@ -197,7 +198,7 @@ def train(cfg: DictConfig) -> None:
 
     # save final model state
     checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
-    _save_model(checkpoint_path, model, optimizer, step, epoch, dataset_stats)
+    _save_model(checkpoint_path, model, optimizer, step, epoch, dataset_stats, cfg)
 
 
 def validation(
@@ -250,7 +251,7 @@ def validation(
             val_writer.add_scalar("avg_loss", avg_loss, global_step=step)
 
 
-def _save_model(checkpoint_path, model, optimizer, step, epoch, dataset_stats):
+def _save_model(checkpoint_path, model, optimizer, step, epoch, dataset_stats, cfg):
     """ A simple utility function to save a model checkpoint.
     """
     torch.save(
@@ -260,6 +261,7 @@ def _save_model(checkpoint_path, model, optimizer, step, epoch, dataset_stats):
             "step": step,
             "epoch": epoch,
             "dataset_stats": dataset_stats,  # samplerate, hopsize, feature_generator.cfg, etc.
+            "use_batch_norm": cfg.train.use_batch_norm,
         },
         checkpoint_path,
     )

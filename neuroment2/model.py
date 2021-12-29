@@ -33,18 +33,24 @@ class NeuromentModel(nn.Module):
         pool_size_1 = 2
         pool_size_2 = 2
 
-        self.conv_1 = ConvBlock(1, 16, (3, 3), stride=(1, 1), padding=(3 // 2, 3 // 2))
-        self.conv_2 = ConvBlock(16, 32, (3, 3), stride=(1, 1), padding=(3 // 2, 3 // 2))
+        self.conv_1 = ConvBlock(1, 16, (3, 3), stride=(1, 1), padding=(3 // 2, 3 // 2),
+                                use_batch_norm=self.use_batch_norm)
+        self.conv_2 = ConvBlock(16, 32, (3, 3), stride=(1, 1), padding=(3 // 2, 3 // 2),
+                                use_batch_norm=self.use_batch_norm)
 
         self.pool_1 = nn.MaxPool2d(kernel_size=(pool_size_1, 1))
 
-        self.conv_3 = ConvBlock(32, 48, (5, 5), stride=(1, 1), padding=(5 // 2, 5 // 2))
-        self.conv_4 = ConvBlock(48, 64, (5, 5), stride=(1, 1), padding=(5 // 2, 5 // 2))
+        self.conv_3 = ConvBlock(32, 48, (5, 5), stride=(1, 1), padding=(5 // 2, 5 // 2),
+                                use_batch_norm=self.use_batch_norm)
+        self.conv_4 = ConvBlock(48, 64, (5, 5), stride=(1, 1), padding=(5 // 2, 5 // 2),
+                                use_batch_norm=self.use_batch_norm)
 
         self.pool_2 = nn.MaxPool2d(kernel_size=(pool_size_2, 1))
 
-        self.conv_5 = ConvBlock(64, 80, (7, 7), stride=(1, 1), padding=(7 // 2, 7 // 2))
-        self.conv_6 = ConvBlock(80, 96, (7, 7), stride=(1, 1), padding=(7 // 2, 7 // 2))
+        self.conv_5 = ConvBlock(64, 80, (7, 7), stride=(1, 1), padding=(7 // 2, 7 // 2),
+                                use_batch_norm=self.use_batch_norm)
+        self.conv_6 = ConvBlock(80, 96, (7, 7), stride=(1, 1), padding=(7 // 2, 7 // 2),
+                                use_batch_norm=self.use_batch_norm)
 
         self.flatten = nn.Flatten()
 
@@ -107,8 +113,10 @@ class ConvBlock(nn.Module):
         kernel_size: tuple,
         stride: tuple = (1, 1),
         padding: tuple = (0, 0),
+        use_batch_norm: bool = True,
     ):
         super().__init__()
+        self.use_batch_norm = use_batch_norm
 
         self.conv = nn.Conv2d(
             in_channels, out_channels, kernel_size, stride=stride, padding=padding
@@ -118,7 +126,8 @@ class ConvBlock(nn.Module):
 
     def forward(self, x):
         x = self.conv(x)
-        x = self.batch_norm(x)
+        if self.use_batch_norm:
+            x = self.batch_norm(x)
         x = self.activation(x)
 
         return x
