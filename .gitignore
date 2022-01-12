@@ -1,14 +1,14 @@
 # Custom ignores
 
 ## Hydra outputs
-outputs/*
-multirun/*
-!/outputs/.gitkeep
-!/multirun/.gitkeep
+outputs/
+multirun/
 
-# Data files
-data/*
-!/data/.gitkeep
+# Data files. Allow certain test files
+data/
+!data/.gitkeep
+!data/test
+!data/test/LetItBe_20210102.flac
 
 ## Audio files
 *.wav
