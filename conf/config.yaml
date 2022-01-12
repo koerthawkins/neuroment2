@@ -53,6 +53,7 @@ train:
   validation_interval: 10000
   gpu_index: 0
   use_batch_norm: True
+  dropout_rate: 0.1
 
 inference:
   # directory with audio files to run inference on

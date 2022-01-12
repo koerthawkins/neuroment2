@@ -14,6 +14,7 @@ class NeuromentModel(nn.Module):
         num_input_features: int,
         num_input_frames: int,
         use_batch_norm: bool = True,
+        dropout_rate: float = 0.0,
     ):
         """ Creates the NeuromentModel.
 
@@ -29,6 +30,7 @@ class NeuromentModel(nn.Module):
         self.num_input_features = num_input_features
         self.num_input_frames = num_input_frames
         self.use_batch_norm = use_batch_norm
+        self.dropout_rate = dropout_rate
 
         pool_size_1 = 2
         pool_size_2 = 2
@@ -39,6 +41,7 @@ class NeuromentModel(nn.Module):
                                 use_batch_norm=self.use_batch_norm)
 
         self.pool_1 = nn.MaxPool2d(kernel_size=(pool_size_1, 1))
+        self.dropout_1 = nn.Dropout2d(p=self.dropout_rate)
 
         self.conv_3 = ConvBlock(16, 32, (5, 5), stride=(1, 1), padding=(5 // 2, 5 // 2),
                                 use_batch_norm=self.use_batch_norm)
@@ -46,6 +49,7 @@ class NeuromentModel(nn.Module):
                                 use_batch_norm=self.use_batch_norm)
 
         self.pool_2 = nn.MaxPool2d(kernel_size=(pool_size_2, 1))
+        self.dropout_2 = nn.Dropout2d(p=self.dropout_rate)
 
         self.conv_5 = ConvBlock(32, 64, (7, 7), stride=(1, 1), padding=(7 // 2, 7 // 2),
                                 use_batch_norm=self.use_batch_norm)
@@ -86,11 +90,13 @@ class NeuromentModel(nn.Module):
         x = self.conv_2(x)
 
         x = self.pool_1(x)
+        x = self.dropout_1(x)
 
         x = self.conv_3(x)
         x = self.conv_4(x)
 
         x = self.pool_2(x)
+        x = self.dropout_2(x)
 
         x = self.conv_5(x)
         x = self.conv_6(x)

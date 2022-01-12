@@ -36,6 +36,7 @@ def train(cfg: DictConfig) -> None:
         num_input_features=dataset_stats["num_features_per_observation"],
         num_input_frames=dataset_stats["num_frames_per_observation"],
         use_batch_norm=cfg.train.use_batch_norm,
+        dropout_rate=cfg.train.dropout_rate,
     )
     model.to(device)
 
@@ -262,6 +263,7 @@ def _save_model(checkpoint_path, model, optimizer, step, epoch, dataset_stats, c
             "epoch": epoch,
             "dataset_stats": dataset_stats,  # samplerate, hopsize, feature_generator.cfg, etc.
             "use_batch_norm": cfg.train.use_batch_norm,
+            "dropout_rate": cfg.train.dropout_rate,
         },
         checkpoint_path,
     )
