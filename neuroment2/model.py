@@ -34,6 +34,7 @@ class NeuromentModel(nn.Module):
 
         pool_size_1 = 2
         pool_size_2 = 2
+        pool_size_3 = 4
 
         self.conv_1 = ConvBlock(1, 16, (3, 3), stride=(1, 1), padding=(3 // 2, 3 // 2),
                                 use_batch_norm=self.use_batch_norm)
@@ -56,11 +57,13 @@ class NeuromentModel(nn.Module):
         self.conv_6 = ConvBlock(64, 64, (7, 7), stride=(1, 1), padding=(7 // 2, 7 // 2),
                                 use_batch_norm=self.use_batch_norm)
 
+        self.pool_3 = nn.MaxPool2d(kernel_size=(pool_size_3, 1))
+
         self.flatten = nn.Flatten()
 
         self.out = nn.Sequential(
             nn.Linear(in_features=int(64 * self.num_input_frames * self.num_input_features
-                                      // (pool_size_1 * pool_size_2)),
+                                      // (pool_size_1 * pool_size_2 * pool_size_3)),
                       out_features=int(self.num_instruments * self.num_input_frames),),
             Reshape((-1, self.num_instruments, self.num_input_frames)),
             nn.Sigmoid(),
@@ -100,6 +103,8 @@ class NeuromentModel(nn.Module):
 
         x = self.conv_5(x)
         x = self.conv_6(x)
+
+        x = self.pool_3(x)
 
         # x = self.swap_dim(x)
         x = self.flatten(x)
