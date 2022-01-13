@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name="audioscene-nas-batchnorm"
-#SBATCH --workdir=/clusterFS/home/student/koerthawkins/audioscene-nas
-#SBATCH --output=/clusterFS/home/student/koerthawkins/audioscene-nas/cluster/logs/slurm_%A-%a.log
+#SBATCH --job-name="neuroment2"
+#SBATCH --workdir=/clusterFS/home/student/koerthawkins/TIP/neuroment2/
+#SBATCH --output=/clusterFS/home/student/koerthawkins/TIP/neuroment2/cluster/logs/slurm_%A-%a.log
 # activate this line to redirect STDERR to separate log file
-# SBATCH --error=/clusterFS/home/student/koerthawkins/audioscene-nas/cluster/errors/error_%j.err
+# SBATCH --error=/clusterFS/home/student/koerthawkins/TIP/neuroment2/cluster/errors/error_%j.err
 # append output if file already exists
 #SBATCH --open-mode=append
 # number cpus per task
