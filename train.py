@@ -88,9 +88,22 @@ def train(cfg: DictConfig) -> None:
         weight_decay=cfg.optimizer.weight_decay,
     )
 
-    # load optimizer if we found a checkpoint
+    # init scheduler
+    # it reduces the learning rate if the training reaches a plateau
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode=cfg.scheduler.mode,
+        factor=cfg.scheduler.factor,
+        patience=cfg.scheduler.patience,
+        threshold=cfg.scheduler.threshold,
+        min_lr=cfg.scheduler.min_lr,
+        verbose=False,  # we log learning rate to TensorBoard
+    )
+
+    # load optimizer and scheduler state if a model checkpoint was loaded
     if state_dict_model:
         optimizer.load_state_dict(state_dict_model["optimizer"])
+        scheduler.load_state_dict(state_dict_model["scheduler"])
 
     # create training dataset and loader
     train_dataset = Neuroment2Dataset(
@@ -176,26 +189,29 @@ def train(cfg: DictConfig) -> None:
             )
             prog_bar.update(1)
 
-            # log losses to TensorBoard SummaryWriter
+            # log scalar values to TensorBoard SummaryWriter
             train_writer.add_scalar("loss", loss, global_step=step)
             train_writer.add_scalar("avg_loss", avg_loss, global_step=step)
+            train_writer.add_scalar("learning_rate", optimizer.param_groups[0]['lr'], global_step=step)
 
             # save checkpoint
             if step % cfg.train.model_checkpoint_interval == 0:
                 checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
-                _save_model(checkpoint_path, model, optimizer, step, epoch, dataset_stats, cfg)
+                _save_model(checkpoint_path, model, optimizer, scheduler, step, epoch, dataset_stats, cfg)
 
-            # run validation loop
-            if step % cfg.train.validation_interval == 0:
-                validation(
-                    cfg,
-                    model,
-                    val_loader,
-                    val_writer,
-                    step,
-                    epoch,
-                    device,
-                )
+        # run validation loop
+        val_loss = validation(
+            cfg,
+            model,
+            val_loader,
+            val_writer,
+            step,
+            epoch,
+            device,
+        )
+
+        # end of an epoch, call learning rate scheduler
+        scheduler.step(val_loss, epoch=epoch)
 
     # save final model state
     checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
@@ -251,14 +267,18 @@ def validation(
             val_writer.add_scalar("loss", loss, global_step=step)
             val_writer.add_scalar("avg_loss", avg_loss, global_step=step)
 
+    # return the total avg val_loss
+    return np.mean(loss_list)
 
-def _save_model(checkpoint_path, model, optimizer, step, epoch, dataset_stats, cfg):
+
+def _save_model(checkpoint_path, model, optimizer, scheduler, step, epoch, dataset_stats, cfg):
     """ A simple utility function to save a model checkpoint.
     """
     torch.save(
         {
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict(),
+            "scheduler": scheduler.state_dict(),
             "step": step,
             "epoch": epoch,
             "dataset_stats": dataset_stats,  # samplerate, hopsize, feature_generator.cfg, etc.
