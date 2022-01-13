@@ -6,6 +6,7 @@ import logging as log
 import numpy as np
 from librosa.core import audio, load
 import librosa as lb
+from tqdm import tqdm
 
 from neuroment2.utils import delete_by_indices
 import matplotlib.pyplot as plt
@@ -155,7 +156,7 @@ class Mixer:
         self.create_mixes()
         pass
 
-    def create_file_list(self, type: str):
+    def create_file_list(self, data_type: str):
         """creates a list of files for the selected category
 
         Args:
@@ -165,7 +166,7 @@ class Mixer:
 
         # get raw audio files
         for file in glob.glob(os.path.join(self.raw_data_path, "*.wav")):
-            if type in file:
+            if data_type in file:
                 files.append(file)
 
         # for each audio file we generate a list with all possible observation windows
@@ -179,6 +180,10 @@ class Mixer:
     def create_mixes(self):
         # create output directory
         os.makedirs(self.pickle_path, exist_ok=True)
+
+        # init progress bar
+        progress_bar = tqdm(total=int(self.num_epochs * float(self.max_num_instruments - self.min_num_instruments)))
+        progress_bar.set_description(self.data_type)
 
         # loop through dataset epochs
         for _ in range(self.num_epochs):
@@ -200,22 +205,27 @@ class Mixer:
                 delete_by_indices(file_list_temp, indices_file_list)
 
                 # generate the mix
-                mix = Mix(
-                    files_mix,
-                    self.num_instruments,
-                    self.feature_generator,
-                    self.mix_id,
-                    self.raw_data_path,
-                    **self.cfg_mixes,
-                )
+                try:
+                    mix = Mix(
+                        files_mix,
+                        self.num_instruments,
+                        self.feature_generator,
+                        self.mix_id,
+                        self.raw_data_path,
+                        **self.cfg_mixes,
+                    )
 
-                # write the generated mix to a pickle file
-                pickle_path = os.path.join(self.pickle_path, f"{self.data_type}_mix_{self.mix_id}.pkl")
-                with open(pickle_path, "wb") as f:
-                    pk.dump(mix, f)
-                log.info("Wrote '%s'." % pickle_path)
+                    # write the generated mix to a pickle file
+                    pickle_path = os.path.join(self.pickle_path, f"{self.data_type}_mix_{self.mix_id}.pkl")
+                    with open(pickle_path, "wb") as f:
+                        pk.dump(mix, f)
+                    # log.info("Wrote '%s'." % pickle_path)
+                except Exception as e:
+                    # in some really rare cases the audio can get non-finite
+                    log.warning("Could not generate mix due to exception '%s'!" % str(e))
 
                 self.mix_id += 1
+                progress_bar.update(1)
 
         # save statistics to a separate YAML file s.t. we can import the metadata for training
         self.save_statistics()
