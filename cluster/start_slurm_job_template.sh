@@ -37,8 +37,8 @@ export PYTHONPATH="/clusterFS/home/student/koerthawkins/TIP/neuroment2/"
 # catch maximum error code of the python script
 error=0; trap 'error=$(($?>$error?$?:$error))' ERR
 
-# we simply forward all existing script args to main.py
-/clusterFS/home/student/koerthawkins/miniconda3/envs/neuroment2-gpu/bin/python main.py $@
+# we simply forward all existing script args to train.py
+/clusterFS/home/student/koerthawkins/miniconda3/envs/neuroment2-gpu/bin/python train.py $@
 
 exit $error
 
