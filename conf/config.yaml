@@ -73,7 +73,7 @@ optimizer:
 # parameters for ReduceLROnPlateau learning rate scheduler
 scheduler:
   mode: "min"
-  factor: 5.0
+  factor: 0.2
   patience: 8
   threshold: 0.0001
   min_lr: 0.00001

@@ -190,9 +190,10 @@ def train(cfg: DictConfig) -> None:
             prog_bar.update(1)
 
             # log scalar values to TensorBoard SummaryWriter
-            train_writer.add_scalar("loss", loss, global_step=step)
-            train_writer.add_scalar("avg_loss", avg_loss, global_step=step)
-            train_writer.add_scalar("learning_rate", optimizer.param_groups[0]['lr'], global_step=step)
+            train_writer.add_scalar("losses/loss", loss, global_step=step)
+            train_writer.add_scalar("losses/avg_loss", avg_loss, global_step=step)
+            train_writer.add_scalar("misc/learning_rate", optimizer.param_groups[0]['lr'], global_step=step)
+            train_writer.add_scalar("misc/epoch", epoch, global_step=step)
 
             # save checkpoint
             if step % cfg.train.model_checkpoint_interval == 0:
@@ -211,11 +212,11 @@ def train(cfg: DictConfig) -> None:
         )
 
         # end of an epoch, call learning rate scheduler
-        scheduler.step(val_loss, epoch=epoch)
+        scheduler.step(val_loss)
 
     # save final model state
     checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
-    _save_model(checkpoint_path, model, optimizer, step, epoch, dataset_stats, cfg)
+    _save_model(checkpoint_path, model, optimizer, scheduler, step, epoch, dataset_stats, cfg)
 
 
 def validation(
@@ -227,7 +228,7 @@ def validation(
     epoch: int,
     device: torch.device,
 ):
-    loss_fn = torch.nn.MSELoss()
+    loss_fn = torch.nn.BCELoss()
 
     with torch.no_grad():
         # create new progress bar
@@ -264,8 +265,8 @@ def validation(
             prog_bar.update(1)
 
             # log losses to TensorBoard SummaryWriter
-            val_writer.add_scalar("loss", loss, global_step=step)
-            val_writer.add_scalar("avg_loss", avg_loss, global_step=step)
+            val_writer.add_scalar("losses/loss", loss, global_step=step)
+            val_writer.add_scalar("losses/avg_loss", avg_loss, global_step=step)
 
     # return the total avg val_loss
     return np.mean(loss_list)
