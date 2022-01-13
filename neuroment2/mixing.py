@@ -181,8 +181,13 @@ class Mixer:
         # create output directory
         os.makedirs(self.pickle_path, exist_ok=True)
 
+        # compute approximate number of mixes
+        n_mixes_approx = self.num_epochs * len(self.file_list)
+        n_mixes_approx *= float(self.max_num_instruments - self.min_num_instruments) / self.max_num_instruments
+        n_mixes_approx = int(n_mixes_approx)
+
         # init progress bar
-        progress_bar = tqdm(total=int(self.num_epochs * float(self.max_num_instruments - self.min_num_instruments)))
+        progress_bar = tqdm(total=n_mixes_approx)
         progress_bar.set_description(self.data_type)
 
         # loop through dataset epochs
