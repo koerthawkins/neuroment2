@@ -4,12 +4,6 @@
 outputs/
 multirun/
 
-# Data files. Allow certain test files
-data/
-!data/.gitkeep
-!data/test
-!data/test/LetItBe_20210102.flac
-
 ## Audio files
 *.wav
 *.WAV
@@ -17,6 +11,12 @@ data/
 *.MP3
 *.flac
 *.FLAC
+
+# Data files. Allow certain test files
+data/*
+!data/.gitkeep
+!data/test
+!data/test/*.flac
 
 ## All picture files
 *.png
