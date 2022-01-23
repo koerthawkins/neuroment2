@@ -109,7 +109,9 @@ def inference(cfg: DictConfig) -> None:
 
             plt.subplot(1, 1, 1)
             envelope_pred_log = 20 * np.log10(envelope_pred + 1e-12)
-            plt.imshow(envelope_pred_log, origin="lower", aspect="auto", vmin=-100, vmax=0)
+            # imshow() automatically interpolates, so we use matshow()
+            plt.matshow(envelope_pred_log, fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
+
             plt.colorbar(label="amplitude / dB")
 
             plt.yticks(ticks=np.arange(0, len(INSTRUMENT_LIST)), labels=INSTRUMENT_LIST)
