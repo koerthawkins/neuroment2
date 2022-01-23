@@ -80,6 +80,9 @@ def inference(cfg: DictConfig) -> None:
             # convert to pytorch tensor and add batch and channel dimensions
             features = torch.Tensor(features).unsqueeze(0).unsqueeze(0)
 
+            # move features to device
+            features = features.to(device)
+
             # pre-allocate predictions
             n_frames_total = features.shape[-1]
             envelope_pred = np.zeros([dataset_stats["num_instruments"], n_frames_total])
