@@ -22,8 +22,8 @@ def inference(cfg: DictConfig) -> None:
     os.chdir(hydra.utils.to_absolute_path("."))
 
     # use GPU if available
-    if torch.cuda.is_available():
-        device = torch.device("cuda:{:d}".format(cfg.train.gpu_index))
+    if cfg.inference.gpu_index != -1 and torch.cuda.is_available():
+        device = torch.device("cuda:{:d}".format(cfg.inference.gpu_index))
     else:
         device = "cpu"
 
@@ -43,7 +43,7 @@ def inference(cfg: DictConfig) -> None:
         dropout_rate=state_dict_model["dropout_rate"],
     )
     model.load_state_dict(state_dict_model["model"])
-    model.to(device)
+    model = model.to(device)
 
     # create feature generator
     feature_gen = FeatureGenerator(dataset_stats["feature_generator_cfg"])
