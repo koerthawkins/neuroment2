@@ -105,7 +105,7 @@ def inference(cfg: DictConfig) -> None:
                 envelope_pred[:, start_index:start_index + num_frames_per_observation] += pred
 
             # plot results
-            plt.subplots(1, 1, figsize=(12, 6.75))
+            fig = plt.subplots(1, 1, figsize=cfg.figsize)
 
             plt.subplot(1, 1, 1)
             envelope_pred_log = 20 * np.log10(envelope_pred + 1e-12)
@@ -122,8 +122,21 @@ def inference(cfg: DictConfig) -> None:
             plt.tight_layout()
             plt.show()
 
+            # save plot to file
+            plot_file_path = os.path.join(
+                cfg.inference.predictions_dir,
+                os.path.splitext(os.path.basename(input_file))[0],
+            )
+            fig.savefig(plot_file_path + ".png")
+
             # update progress bar
             prog_bar.update(1)
+
+        # close progress bar s.t. it is flushed
+        prog_bar.close()
+
+        # finish
+        log.info("Finished.")
 
 
 if __name__ == "__main__":
