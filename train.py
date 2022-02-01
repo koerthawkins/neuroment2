@@ -129,9 +129,22 @@ def train(cfg: DictConfig) -> None:
         num_workers=cfg.train.num_workers,
     )
 
+    # create test dataset and loader
+    test_dataset = Neuroment2Dataset(
+        resolved_dataset_dir,
+        "test",
+    )
+    test_loader = DataLoader(
+        test_dataset,
+        batch_size=cfg.train.batch_size,
+        shuffle=False,
+        num_workers=cfg.train.num_workers,
+    )
+
     # init SummaryWriter to log TensorBoard events
     train_writer = SummaryWriter(os.path.join(cfg.train.tensorboard_dir, "train"))
     val_writer = SummaryWriter(os.path.join(cfg.train.tensorboard_dir, "val"))
+    test_writer = SummaryWriter(os.path.join(cfg.train.tensorboard_dir, "test"))
 
     # create loss function
     loss_fn = torch.nn.BCELoss()
@@ -217,6 +230,21 @@ def train(cfg: DictConfig) -> None:
     # save final model state
     checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
     _save_model(checkpoint_path, model, optimizer, scheduler, step, epoch, dataset_stats, cfg)
+
+    # benchmark the test set
+    test_loss = validation(
+        cfg,
+        model,
+        test_loader,
+        test_writer,
+        step,
+        epoch,
+        device,
+    )
+    log.info("Test loss: %.5f" % test_loss)
+
+    # print
+    log.info("Finished.")
 
 
 def validation(
