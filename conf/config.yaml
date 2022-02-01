@@ -4,13 +4,11 @@ defaults:
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
-
-
 # general configuration options
 class_labels: ["clarinet", "distorted_electric_guitar", "female_singer", "flute",
               "piano", "tenor_saxophone", "trumpet", "violin"]
 # figure size for plots that will be created
-figsize: [8, 6.5]
+figsize: [8, 4.5]
 
 Mixer:
   # absolute path to directory with raw audio files from which features are computed
