@@ -249,7 +249,7 @@ class Mixer:
                 self.cfg["num_octaves"] * self.cfg["num_bins_per_octave"]
             )
         elif self.cfg["feature"] == "STFT":
-            statistics["num_features_per_observation"] = self.dft_size // 2 + 1
+            statistics["num_features_per_observation"] = self.cfg["Mix"]["dft_size"] // 2 + 1
         elif self.cfg["feature"] == "MEL":
             statistics["num_features_per_observation"] = self.cfg["num_mels"]
 
