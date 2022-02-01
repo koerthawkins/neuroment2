@@ -2,6 +2,10 @@
 
 A complete rewrite of "Neuroment - Instrument Detection using Neural Networks".
 
+## Structure
+
+- `parse_dataset.py`: Parses the original, unbalanced Medley-Solos-DB and generates a new, balanced version out of it
+
 ## Dataset
 
 We use the [Medley-solos-DB](https://zenodo.org/record/1344103#.YczLvNso9hE). It contains 8 different instrument classes, sampled at 44.1kHz and with ~21k files in total. The instrument classes are (in this order):

@@ -4,7 +4,16 @@ defaults:
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
-Mixer:  # absolute path to directory with raw audio files from which features are computed
+
+
+# general configuration options
+class_labels: ["clarinet", "distorted_electric_guitar", "female_singer", "flute",
+              "piano", "tenor_saxophone", "trumpet", "violin"]
+# figure size for plots that will be created
+figsize: [8, 6.5]
+
+Mixer:
+  # absolute path to directory with raw audio files from which features are computed
   raw_data_path: "Medley-solos-DB_small"
   # path where we write generated features and labels to
   pickle_path: "data/pickle/"
@@ -77,3 +86,20 @@ scheduler:
   patience: 8
   threshold: 0.0001
   min_lr: 0.00001
+
+# dataset parsing configuration (for parse_dataset.py)
+parsing:
+  # the input dataset directory (usually the dataset in there should be unbalanced)
+  input_dataset_dir: "/media/WindowsPartition/Users/maier/Desktop/datasets/MedleyDB/full_dataset_v1p2"
+  # the dataset types which we want to parse
+  dataset_types: ["training", "validation", "test"]
+  # we oversample the underrepresented classes by this factor
+  # overrepresented classes will be undersampled s.t. in the end each class has the same number of files
+  max_oversampling_factor: 3.0
+  # directory where the parsed dataset will be written to
+  # we automatically append the max_oversampling_factor to the output_dataset_dir in code
+  output_dataset_dir: "/media/WindowsPartition/Users/maier/Desktop/datasets/MedleyDB/parsed_orig_dataset_oversampling-factor"
+  # directory where plots with file distributions will be written to
+  output_plot_dir: "plots/"
+
+
