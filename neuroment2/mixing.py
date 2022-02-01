@@ -329,7 +329,16 @@ class Mix:
             )
             audio_data *= levels[i]
             feature, envelope = feature_generator.generate(audio_data)
-            label = int(file.split("-")[1][0])
+
+            # get base file name without directory
+            file_name = os.path.basename(file)
+
+            # get file parts
+            parts = file_name.split("_")
+            dataset_label_and_label = parts[1]
+
+            # derive label from file name
+            label = int(dataset_label_and_label.split("-")[1])
 
             self.wav_files.append(audio_data)
             self.features.append(feature)
