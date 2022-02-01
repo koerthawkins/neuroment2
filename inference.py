@@ -105,7 +105,7 @@ def inference(cfg: DictConfig) -> None:
                 envelope_pred[:, start_index:start_index + num_frames_per_observation] += pred
 
             # plot results
-            fig = plt.subplots(1, 1, figsize=cfg.figsize)
+            fig, _ = plt.subplots(1, 1, figsize=cfg.figsize)
 
             plt.subplot(1, 1, 1)
             envelope_pred_log = 20 * np.log10(envelope_pred + 1e-12)
