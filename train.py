@@ -227,6 +227,9 @@ def train(cfg: DictConfig) -> None:
         # end of an epoch, call learning rate scheduler
         scheduler.step(val_loss)
 
+        # close progress bar s.t. it is flushed
+        prog_bar.close()
+
     # save final model state
     checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
     _save_model(checkpoint_path, model, optimizer, scheduler, step, epoch, dataset_stats, cfg)
@@ -295,6 +298,9 @@ def validation(
             # log losses to TensorBoard SummaryWriter
             val_writer.add_scalar("losses/loss", loss, global_step=step)
             val_writer.add_scalar("losses/avg_loss", avg_loss, global_step=step)
+
+    # close progress bar s.t. it is flushed
+    prog_bar.close()
 
     # return the total avg val_loss
     return np.mean(loss_list)
