@@ -220,6 +220,13 @@ class Mixer:
                         **self.cfg_mixes,
                     )
 
+                    # remove all redundant fields from mix s.t. we don't need too much storage
+                    del mix.envelopes
+                    del mix.features
+                    del mix.wav_files
+                    mix.feature_mix = mix.feature_mix.astype(np.float32)
+                    mix.labels_mix = mix.labels_mix.astype(np.float32)
+
                     # write the generated mix to a pickle file
                     pickle_path = os.path.join(self.pickle_path, f"{self.data_type}_mix_{self.mix_id}.pkl")
                     with open(pickle_path, "wb") as f:
