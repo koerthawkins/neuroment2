@@ -140,7 +140,7 @@ class Mixer:
 
         self.feature_generator = FeatureGenerator(kwargs)
 
-        self.num_epochs = num_epochs
+        self.num_epochs = num_epochs[data_type]
         self.pickle_path = pickle_path
         self.raw_data_path = raw_data_path
         self.data_type = data_type

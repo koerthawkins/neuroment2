@@ -18,7 +18,10 @@ Mixer:
   # the type of data we want to generate. options: "training", "validation", "test"
   data_type: "test"
   # number of times we use each raw data file once
-  num_epochs: 1
+  num_epochs:
+    training: 1
+    validation: 1
+    test: 1
   num_instruments_mix: [1, 4]
   num_instruments: 8
   num_samples_per_file: 131072
