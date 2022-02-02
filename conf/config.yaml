@@ -4,6 +4,16 @@ defaults:
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
+# configure hydra job directories
+# an example output directory is: './outputs/2022-01-18/my-cool-job'
+# override the job directory via `python main.py hydra.job.name=my-cool-job`
+hydra:
+  run:
+    dir: ./outputs/${now:%Y-%m-%d}/${hydra.job.name}
+  sweep:
+    dir: ./multirun/${now:%Y-%m-%d}/${hydra.job.name}
+    subdir: ${hydra.job.num}
+
 # general configuration options
 class_labels: ["clarinet", "distorted_electric_guitar", "female_singer", "flute",
               "piano", "tenor_saxophone", "trumpet", "violin"]
