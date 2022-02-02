@@ -32,8 +32,8 @@
 # one instance: --array=0
 # three instances: --array=0-2
 #SBATCH --array=0
-# use at least 4GB VRAM
-#SBATCH --constraint=minGPURAM4
+# use at least 6GB VRAM
+#SBATCH --constraint=minGPURAM6
 
 export HOME="/clusterFS/home/student/koerthawkins"
 export PYTHONPATH="/clusterFS/home/student/koerthawkins/TIP/neuroment2/"
@@ -42,7 +42,7 @@ export PYTHONPATH="/clusterFS/home/student/koerthawkins/TIP/neuroment2/"
 error=0; trap 'error=$(($?>$error?$?:$error))' ERR
 
 # we simply forward all existing script args to main.py
-/clusterFS/home/student/koerthawkins/miniconda3/envs/neuroment2-gpu/bin/python main.py $@
+/clusterFS/home/student/koerthawkins/miniconda3/envs/neuroment2-gpu/bin/python train.py $@
 
 exit $error
 
