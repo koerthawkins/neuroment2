@@ -34,6 +34,24 @@ class FeatureGenerator:
         if self.envelope_type not in ["RMS", "SPECTRUM"]:
             raise ValueError("envelope_type '%s' is invalid!" % self.envelope_type)
 
+        # generate some filter bank variables which don't need to be re-computed each time
+        # in self.generate()
+        self.cqt_lengths = lb.filters.constant_q_lengths(
+                sr=self.sr,
+                n_bins=self.num_bins_per_octave * self.num_octaves,
+                bins_per_octave=self.num_bins_per_octave,
+                fmin=self.f_min,
+                window=self.window,
+        )
+        self.mel_filter_bank = lb.filters.mel(
+                sr=self.sr,
+                n_fft=self.dft_size,
+                n_mels=self.num_mels,
+                fmin=self.f_min,
+                fmax=self.f_max,
+                norm=1.0,
+        )
+
     def generate(self, audio):
         if self.feature == "CQT":
             cqt = lb.cqt(
@@ -47,14 +65,7 @@ class FeatureGenerator:
             )
             cqt = np.abs(cqt)
 
-            cqt_lengths = lb.filters.constant_q_lengths(
-                sr=self.sr,
-                n_bins=self.num_bins_per_octave * self.num_octaves,
-                bins_per_octave=self.num_bins_per_octave,
-                fmin=self.f_min,
-                window=self.window,
-            )
-            cqt /= cqt_lengths[:, None]
+            cqt /= self.cqt_lengths[:, None]
             feature = np.log(cqt + 1e-12)
             if self.envelope_type == "SPECTRUM":
                 envelope = np.sum((cqt ** 2.0), axis=0)
@@ -87,15 +98,8 @@ class FeatureGenerator:
                 )
             )
             stft /= self.dft_size
-            mel_filter_bank = lb.filters.mel(
-                sr=self.sr,
-                n_fft=self.dft_size,
-                n_mels=self.num_mels,
-                fmin=self.f_min,
-                fmax=self.f_max,
-                norm=1.0,
-            )
-            mel = np.dot(mel_filter_bank, stft)
+
+            mel = np.dot(self.mel_filter_bank, stft)
             feature = np.log(mel + 1e-12)
             if self.envelope_type == "SPECTRUM":
                 envelope = np.sum(mel ** 2.0, axis=0)
