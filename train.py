@@ -147,8 +147,7 @@ def train(cfg: DictConfig) -> None:
     test_writer = SummaryWriter(os.path.join(cfg.train.tensorboard_dir, "test"))
 
     # create loss function
-    loss_fn_1 = torch.nn.BCELoss()
-    loss_fn_2 = torch.nn.MSELoss()
+    loss_fn_1, loss_fn_2 = _get_loss_functions()
 
     # set model to training mode
     model.train()
@@ -264,8 +263,8 @@ def validation(
     epoch: int,
     device: torch.device,
 ):
-    loss_fn_1 = torch.nn.BCELoss()
-    loss_fn_2 = torch.nn.MSELoss()
+    # get loss function objects
+    loss_fn_1, loss_fn_2 = _get_loss_functions()
 
     with torch.no_grad():
         # create new progress bar
@@ -333,6 +332,12 @@ def _save_model(checkpoint_path, model, optimizer, scheduler, step, epoch, datas
         checkpoint_path,
     )
     log.info("Saved model checkpoint '%s'." % checkpoint_path)
+
+
+def _get_loss_functions():
+    """ Returns new loss function objects
+    """
+    return torch.nn.BCELoss(), torch.nn.MSELoss()
 
 
 if __name__ == "__main__":
