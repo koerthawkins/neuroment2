@@ -147,7 +147,8 @@ def train(cfg: DictConfig) -> None:
     test_writer = SummaryWriter(os.path.join(cfg.train.tensorboard_dir, "test"))
 
     # create loss function
-    loss_fn = torch.nn.BCELoss()
+    loss_fn_1 = torch.nn.BCELoss()
+    loss_fn_2 = torch.nn.MSELoss()
 
     # set model to training mode
     model.train()
@@ -180,31 +181,35 @@ def train(cfg: DictConfig) -> None:
             y_pred = model(x)
 
             # compute losses
-            loss = loss_fn(y_pred, y_ref)
+            loss_1 = loss_fn_1(y_pred, y_ref)
+            loss_2 = loss_fn_2(y_pred, y_ref)
+            total_loss = loss_1 * cfg.train.loss_weights[0] + loss_2 * cfg.train.loss_weights[1]
 
             # backwards-propagate loss and update weights in model
-            loss.backward()
+            total_loss.backward()
             optimizer.step()
 
             # compute average loss over the last n_batches_per_average batches
-            loss_list.append(float(loss))
+            loss_list.append(float(total_loss))
             if len(loss_list) > cfg.train.n_batches_per_average:
                 loss_list = loss_list[-cfg.train.n_batches_per_average:]
-            avg_loss = np.mean(loss_list)
+            avg_total_loss = np.mean(loss_list)
 
             # update progress bar. don't force-refresh because that will create a new line
             prog_bar.set_postfix(
                 {
                     "Batch": i_batch + 1,
-                    'Loss (avg)': avg_loss,
+                    'Loss (avg)': avg_total_loss,
                 },
                 refresh=False,
             )
             prog_bar.update(1)
 
             # log scalar values to TensorBoard SummaryWriter
-            train_writer.add_scalar("losses/loss", loss, global_step=step)
-            train_writer.add_scalar("losses/avg_loss", avg_loss, global_step=step)
+            train_writer.add_scalar("losses/loss_1", loss_1, global_step=step)
+            train_writer.add_scalar("losses/loss_2", loss_2, global_step=step)
+            train_writer.add_scalar("losses/total_loss", total_loss, global_step=step)
+            train_writer.add_scalar("losses/avg_total_loss", avg_total_loss, global_step=step)
             train_writer.add_scalar("misc/learning_rate", optimizer.param_groups[0]['lr'], global_step=step)
             train_writer.add_scalar("misc/epoch", epoch, global_step=step)
 
@@ -259,7 +264,8 @@ def validation(
     epoch: int,
     device: torch.device,
 ):
-    loss_fn = torch.nn.BCELoss()
+    loss_fn_1 = torch.nn.BCELoss()
+    loss_fn_2 = torch.nn.MSELoss()
 
     with torch.no_grad():
         # create new progress bar
@@ -268,36 +274,40 @@ def validation(
         # init loss_list
         loss_list = []
 
-        for i_batch, (x, y) in enumerate(val_loader):
+        for i_batch, (x, y_ref) in enumerate(val_loader):
             # move tensors to right device
             x = x.to(device)
-            y = y.to(device)
+            y_ref = y_ref.to(device)
 
             # predict
             y_pred = model(x)
 
-            # compute loss
-            loss = loss_fn(y_pred, y)
+            # compute losses
+            loss_1 = loss_fn_1(y_pred, y_ref)
+            loss_2 = loss_fn_2(y_pred, y_ref)
+            total_loss = loss_1 * cfg.train.loss_weights[0] + loss_2 * cfg.train.loss_weights[1]
 
             # compute average loss over the last n_batches_per_average batches
-            loss_list.append(float(loss))
+            loss_list.append(float(total_loss))
             if len(loss_list) > cfg.train.n_batches_per_average:
                 loss_list = loss_list[-cfg.train.n_batches_per_average:]
-            avg_loss = np.mean(loss_list)
+            avg_total_loss = np.mean(loss_list)
 
             # update progress bar. don't force-refresh because that will create a new line
             prog_bar.set_postfix(
                 {
                     "Batch": i_batch + 1,
-                    'Loss (avg)': avg_loss,
+                    'Loss (avg)': avg_total_loss,
                 },
                 refresh=False,
             )
             prog_bar.update(1)
 
             # log losses to TensorBoard SummaryWriter
-            val_writer.add_scalar("losses/loss", loss, global_step=step)
-            val_writer.add_scalar("losses/avg_loss", avg_loss, global_step=step)
+            val_writer.add_scalar("losses/loss_1", loss_1, global_step=step)
+            val_writer.add_scalar("losses/loss_2", loss_2, global_step=step)
+            val_writer.add_scalar("losses/total_loss", total_loss, global_step=step)
+            val_writer.add_scalar("losses/avg_total_loss", avg_total_loss, global_step=step)
 
     # close progress bar s.t. it is flushed
     prog_bar.close()
