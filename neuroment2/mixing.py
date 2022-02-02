@@ -187,7 +187,7 @@ class Mixer:
 
         # compute number of mixes to generate
         n_mixes = self.num_epochs * len(self.file_list)
-        n_mixes *= np.mean([self.max_num_instruments, self.min_num_instruments]) / self.max_num_instruments
+        n_mixes /= np.mean([self.min_num_instruments, self.max_num_instruments])
         n_mixes = int(n_mixes)
 
         # init progress bar
@@ -209,7 +209,7 @@ class Mixer:
             while len(file_list_temp) >= self.max_num_instruments:
                 # init counter at beginning
                 i_mix += 1
-                
+
                 num_instruments_mix = np.random.randint(
                     self.min_num_instruments, self.max_num_instruments + 1
                 )
