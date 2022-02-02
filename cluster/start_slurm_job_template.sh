@@ -1,9 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name="neuroment2"
-#SBATCH --workdir=/clusterFS/home/student/koerthawkins/TIP/neuroment2/
-#SBATCH --output=/clusterFS/home/student/koerthawkins/TIP/neuroment2/cluster/logs/slurm_%A-%a.log
+# no default job name, we want to supply job name via CMD line! (do it via --job-name=JOB_NAME)
+# SBATCH --job-name="audioscene-nas-batchnorm"
+#SBATCH --workdir=/clusterFS/home/student/koerthawkins/TIP/neuroment2
+# %x: slurm job name
+#SBATCH --output=/clusterFS/home/student/koerthawkins/TIP/neuroment2/cluster/logs/slurm_%A-%a_%x.log
 # activate this line to redirect STDERR to separate log file
-# SBATCH --error=/clusterFS/home/student/koerthawkins/TIP/neuroment2/cluster/errors/error_%j.err
+# SBATCH --error=/clusterFS/home/student/koerthawkins/TIP/neuroment2/cluster/errors/slurm_%j_%x.err
 # append output if file already exists
 #SBATCH --open-mode=append
 # number cpus per task
@@ -11,16 +13,16 @@
 # maximum time limit
 # --time=DD-HH
 # --time=HH:MM::SS
-#SBATCH --time=07-00
+#SBATCH --time=02-23
 # maximum memory limit
-#SBATCH --mem=24G
+#SBATCH --mem=12G
 # requires a gpu (otherwise: remove line)
 #SBATCH --gres=gpu
 # partitions to choose the nodes from (find e.g. using sview command)
 # example for cpu only:
 # SBATCH --partition=client,labor,short,simulation22
 # example for gpu:
-#SBATCH --partition=gpu,gpu2,gpu6
+#SBATCH --partition=gpu,gpu2,gpu4,gpu6
 # if you are in the igpu partition (you will know when you are!)
 # use the next three lines for running on ipgu. always exluce all hosts that are not yours or you have the okay of the owner to use that host!!
 # SBATCH --partition=igpu
@@ -30,6 +32,8 @@
 # one instance: --array=0
 # three instances: --array=0-2
 #SBATCH --array=0
+# use at least 4GB VRAM
+#SBATCH --constraint=minGPURAM4
 
 export HOME="/clusterFS/home/student/koerthawkins"
 export PYTHONPATH="/clusterFS/home/student/koerthawkins/TIP/neuroment2/"
@@ -37,8 +41,8 @@ export PYTHONPATH="/clusterFS/home/student/koerthawkins/TIP/neuroment2/"
 # catch maximum error code of the python script
 error=0; trap 'error=$(($?>$error?$?:$error))' ERR
 
-# we simply forward all existing script args to train.py
-/clusterFS/home/student/koerthawkins/miniconda3/envs/neuroment2-gpu/bin/python train.py $@
+# we simply forward all existing script args to main.py
+/clusterFS/home/student/koerthawkins/miniconda3/envs/neuroment2-gpu/bin/python main.py $@
 
 exit $error
 
