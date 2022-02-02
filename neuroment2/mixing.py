@@ -185,19 +185,28 @@ class Mixer:
         # create output directory
         os.makedirs(self.pickle_path, exist_ok=True)
 
-        # compute approximate number of mixes
-        n_mixes_approx = self.num_epochs * len(self.file_list)
-        n_mixes_approx *= float(self.max_num_instruments - self.min_num_instruments) / self.max_num_instruments
-        n_mixes_approx = int(n_mixes_approx)
+        # compute number of mixes to generate
+        n_mixes = self.num_epochs * len(self.file_list)
+        n_mixes *= np.mean([self.max_num_instruments, self.min_num_instruments]) / self.max_num_instruments
+        n_mixes = int(n_mixes)
 
         # init progress bar
-        progress_bar = tqdm(total=n_mixes_approx)
+        progress_bar = tqdm(total=n_mixes)
         progress_bar.set_description(self.data_type)
 
+        # init mix counter
+        i_mix = 0
+
         # loop through dataset epochs
-        for _ in range(self.num_epochs):
+        while i_mix < n_mixes:
+            # init counter at beginning
+            i_mix += 1
+            
             # we create a copy of the original file list where we pop files from
             file_list_temp = self.file_list.copy()
+
+            # we also shuffle it to make sure we don't use the same order twice
+            np.random.shuffle(file_list_temp)
 
             # generate files until the max number of instruments can not be satisfied anymore
             while len(file_list_temp) >= self.max_num_instruments:
