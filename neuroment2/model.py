@@ -62,8 +62,10 @@ class NeuromentModel(nn.Module):
         self.flatten = nn.Flatten()
 
         self.out = nn.Sequential(
-            nn.Linear(in_features=int(64 * self.num_input_frames * self.num_input_features
-                                      // (pool_size_1 * pool_size_2 * pool_size_3)),
+            # we must first divide num_input_features because this size is divided first in the network
+            # num_input_frames always stays the same until the flatten layer
+            nn.Linear(in_features=int(64 * (self.num_input_features // (pool_size_1 * pool_size_2 * pool_size_3))
+                                      * self.num_input_frames),
                       out_features=int(self.num_instruments * self.num_input_frames),),
             Reshape((-1, self.num_instruments, self.num_input_frames)),
             nn.Sigmoid(),
