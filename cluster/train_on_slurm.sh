@@ -32,8 +32,8 @@
 # one instance: --array=0
 # three instances: --array=0-2
 #SBATCH --array=0
-# use at least 6GB VRAM
-#SBATCH --constraint=minGPURAM6
+# use at least 11GB VRAM
+#SBATCH --constraint=minGPURAM11
 
 export HOME="/clusterFS/home/student/koerthawkins"
 export PYTHONPATH="/clusterFS/home/student/koerthawkins/TIP/neuroment2/"
