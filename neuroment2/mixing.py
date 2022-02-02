@@ -199,9 +199,6 @@ class Mixer:
 
         # loop through dataset epochs
         while i_mix < n_mixes:
-            # init counter at beginning
-            i_mix += 1
-            
             # we create a copy of the original file list where we pop files from
             file_list_temp = self.file_list.copy()
 
@@ -210,6 +207,9 @@ class Mixer:
 
             # generate files until the max number of instruments can not be satisfied anymore
             while len(file_list_temp) >= self.max_num_instruments:
+                # init counter at beginning
+                i_mix += 1
+                
                 num_instruments_mix = np.random.randint(
                     self.min_num_instruments, self.max_num_instruments + 1
                 )
