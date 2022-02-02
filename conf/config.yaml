@@ -33,7 +33,8 @@ Mixer:
   f_min: 27.5
   f_max: 20000
   window: "hann"
-  center: False
+  # CQT always centers so it's advisable to set that to and keep it at True
+  center: True
   num_bins_per_octave: 24
   num_octaves: 8
   Mix:
