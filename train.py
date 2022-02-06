@@ -213,7 +213,7 @@ def train(cfg: DictConfig) -> None:
             train_writer.add_scalar("misc/epoch", epoch, global_step=step)
 
             # save checkpoint
-            if step % cfg.train.model_checkpoint_interval == 0:
+            if (cfg.train.model_checkpoint_interval != -1) and (step % cfg.train.model_checkpoint_interval == 0):
                 checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
                 _save_model(checkpoint_path, model, optimizer, scheduler, step, epoch, dataset_stats, cfg)
 

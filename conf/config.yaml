@@ -70,7 +70,9 @@ train:
   num_workers: 0
   batch_size: 32
   n_batches_per_average: 100
-  model_checkpoint_interval: 1000
+  # if a value > 0 we save model checkpoints at multiples of this interval
+  # if -1 we don't save checkpoints
+  model_checkpoint_interval: -1
   gpu_index: 0
   use_batch_norm: True
   dropout_rate: 0.1
