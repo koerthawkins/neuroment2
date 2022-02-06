@@ -105,10 +105,9 @@ def inference(cfg: DictConfig) -> None:
             fig, _ = plt.subplots(1, 1, figsize=cfg.figsize)
 
             plt.subplot(1, 1, 1)
-            envelope_pred_log = 20 * np.log10(envelope_pred + 1e-12)
 
             # imshow() automatically interpolates, so we use matshow()
-            plt.matshow(envelope_pred_log, fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
+            plt.matshow(_to_db(envelope_pred), fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
 
             plt.colorbar(label="amplitude / dB")
 
@@ -133,6 +132,54 @@ def inference(cfg: DictConfig) -> None:
             fig.savefig(plot_file_path)
             log.info("Saved '%s'." % plot_file_path)
 
+            if "sequence_1" in input_file.lower():
+                envelope_ref = _compute_reference_envelopes(
+                    cfg,
+                    audio,
+                    dataset_stats["feature_generator_cfg"],
+                    n_frames_total,
+                )
+
+                # compute some plot variables
+                t = np.linspace(0.0, len(audio) / float(dataset_stats["sr"]), num=n_frames_total)
+                t_string = ["%.1f" % number for number in t]
+                step_width = n_frames_total // 8
+
+                # make comparison plot
+                fig, _ = plt.subplots(2, 1, figsize=cfg.figsize)
+
+                # plot predicted envelopes
+                plt.subplot(2, 1, 1)
+                plt.matshow(_to_db(envelope_pred), fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
+                plt.colorbar(label="amplitude / dB")
+                plt.xticks(ticks=np.arange(0, n_frames_total)[::step_width], labels=t_string[::step_width])
+                plt.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
+                plt.yticks(ticks=np.arange(0, len(cfg.class_labels)), labels=cfg.class_labels)
+                plt.title("%s: predicted" % os.path.basename(input_file))
+                plt.xlabel("time / s")
+                plt.ylabel("instruments")
+
+                # plot reference envelopes
+                plt.subplot(2, 1, 2)
+                plt.matshow(_to_db(envelope_ref), fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
+                plt.colorbar(label="amplitude / dB")
+                plt.xticks(ticks=np.arange(0, n_frames_total)[::step_width], labels=t_string[::step_width])
+                plt.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
+                plt.yticks(ticks=np.arange(0, len(cfg.class_labels)), labels=cfg.class_labels)
+                plt.title("%s: reference" % os.path.basename(input_file))
+                plt.xlabel("time / s")
+                plt.ylabel("instruments")
+
+                plt.tight_layout()
+
+                # save plot to file
+                plot_file_path = os.path.join(
+                    cfg.inference.predictions_dir,
+                    os.path.splitext(os.path.basename(input_file))[0] + "_comparison.png",
+                )
+                fig.savefig(plot_file_path)
+                log.info("Saved '%s'." % plot_file_path)
+
             # save predictions to CSV too
             for i_instrument, instrument in enumerate(cfg.class_labels):
                 csv_file_path = os.path.join(
@@ -150,6 +197,39 @@ def inference(cfg: DictConfig) -> None:
 
         # finish
         log.info("Finished.")
+
+
+def _compute_reference_envelopes(cfg: DictConfig, audio: np.ndarray, feature_generator_cfg: dict, n_frames_total: int):
+    """ Computes the reference envelopes for Sequence_1.flac and returns them.
+    """
+    # init envelopes
+    envelopes = np.zeros(shape=[len(cfg.class_labels), n_frames_total])
+
+    for i_class, _ in enumerate(cfg.class_labels):
+        start_sample = 5.0 * feature_generator_cfg["Mix"]["sr"] * i_class
+        stop_sample = np.min([5.0 * feature_generator_cfg["Mix"]["sr"] * (i_class + 1), len(audio)])
+
+        # TODO this is not perfectly accurate! it doesn't consider the initial frame AND centering!
+        start_frame = int(start_sample // feature_generator_cfg["Mix"]["hopsize"])
+
+        audio_current_instrument = audio[int(start_sample):int(stop_sample)]
+
+        rms = lb.feature.rms(
+            audio_current_instrument,
+            frame_length=feature_generator_cfg["Mix"]["dft_size"],
+            hop_length=feature_generator_cfg["Mix"]["hopsize"],
+            center=feature_generator_cfg["center"],
+        )[0, :]
+
+        envelopes[i_class, start_frame:start_frame + len(rms)] = rms
+
+    return envelopes
+
+
+def _to_db(spectrum: np.ndarray):
+    """ Converts a spectrum from linear to dB and returns it.
+    """
+    return 20.0 * np.log10(spectrum + 1e-12)
 
 
 if __name__ == "__main__":
