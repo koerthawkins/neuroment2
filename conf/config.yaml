@@ -15,7 +15,7 @@ hydra:
     subdir: ${hydra.job.num}
 
 # general configuration options
-class_labels: ["clarinet", "distorted_electric_guitar", "female_singer", "flute",
+class_labels: ["clarinet", "electric_guitar", "female_singer", "flute",
               "piano", "tenor_saxophone", "trumpet", "violin"]
 # figure size for plots that will be created
 figsize: [8, 4.5]

@@ -12,9 +12,6 @@ import matplotlib.pyplot as plt
 from neuroment2 import *
 
 
-INSTRUMENT_LIST = ["clarinet", "e-guitar", "singer", "flute", "piano", "saxophone", "trumpet", "violin"]
-
-
 @hydra.main(config_path="conf", config_name="config")
 def inference(cfg: DictConfig) -> None:
     # we switch to repository root dir to simplify path handling
@@ -109,14 +106,20 @@ def inference(cfg: DictConfig) -> None:
 
             plt.subplot(1, 1, 1)
             envelope_pred_log = 20 * np.log10(envelope_pred + 1e-12)
+
             # imshow() automatically interpolates, so we use matshow()
             plt.matshow(envelope_pred_log, fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
 
             plt.colorbar(label="amplitude / dB")
 
-            plt.yticks(ticks=np.arange(0, len(INSTRUMENT_LIST)), labels=INSTRUMENT_LIST)
+            t = np.linspace(0.0, len(audio) / float(dataset_stats["sr"]), num=n_frames_total)
+            t_string = ["%.1f" % number for number in t]
+            step_width = n_frames_total // 8
+            plt.xticks(ticks=np.arange(0, n_frames_total)[::step_width], labels=t_string[::step_width])
+            plt.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
+            plt.yticks(ticks=np.arange(0, len(cfg.class_labels)), labels=cfg.class_labels)
             plt.title(os.path.basename(input_file))
-            plt.xlabel("frames")
+            plt.xlabel("time / s")
             plt.ylabel("instruments")
 
             plt.tight_layout()
@@ -125,9 +128,19 @@ def inference(cfg: DictConfig) -> None:
             # save plot to file
             plot_file_path = os.path.join(
                 cfg.inference.predictions_dir,
-                os.path.splitext(os.path.basename(input_file))[0],
+                os.path.splitext(os.path.basename(input_file))[0] + ".png",
             )
-            fig.savefig(plot_file_path + ".png")
+            fig.savefig(plot_file_path)
+            log.info("Saved '%s'." % plot_file_path)
+
+            # save predictions to CSV too
+            for i_instrument, instrument in enumerate(cfg.class_labels):
+                csv_file_path = os.path.join(
+                    cfg.inference.predictions_dir,
+                    "%s_%s.csv" % (os.path.splitext(os.path.basename(input_file))[0], instrument),
+                )
+                envelope_pred[i_instrument, :].tofile(csv_file_path, sep=",")
+                log.info("Saved '%s'." % csv_file_path)
 
             # update progress bar
             prog_bar.update(1)
