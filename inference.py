@@ -132,7 +132,7 @@ def inference(cfg: DictConfig) -> None:
             fig.savefig(plot_file_path)
             log.info("Saved '%s'." % plot_file_path)
 
-            if "sequence_1" in input_file.lower():
+            if "sequence" in input_file.lower():
                 envelope_ref = _compute_reference_envelopes(
                     cfg,
                     audio,
@@ -201,6 +201,8 @@ def inference(cfg: DictConfig) -> None:
 
 def _compute_reference_envelopes(cfg: DictConfig, audio: np.ndarray, feature_generator_cfg: dict, n_frames_total: int):
     """ Computes the reference envelopes for Sequence_1.flac and returns them.
+
+        We assume that each instrument plays exactly for 5s.
     """
     # init envelopes
     envelopes = np.zeros(shape=[len(cfg.class_labels), n_frames_total])
