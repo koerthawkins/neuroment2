@@ -46,11 +46,14 @@ class FrobeniusLoss(nn.Module):
         Expected input shape(s): [n_batches, n_instruments, n_time_frames]
         """
         # compute difference matrix
-        d = predictions - labels
+        difference_matrix = torch.abs(predictions - labels)
 
-        # compute frobenius norm
-        total_loss = 0.0
-        for i_batch in range(predictions.shape[0]):
-            total_loss += torch.linalg.norm(d[i_batch, :, :], ord="fro")
+        # clamp values s.t. we don't hit numerical stability
+        with torch.no_grad():
+            difference_matrix = torch.clamp(difference_matrix, min=1e-8)
 
-        return total_loss
+        # compute frobenius norm of difference matrix per batch
+        frobenius_norm = torch.linalg.norm(difference_matrix, dim=(1, 2), ord="fro")
+
+        # return average frobenius norm
+        return torch.mean(frobenius_norm)
