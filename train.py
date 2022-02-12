@@ -26,7 +26,9 @@ def train(cfg: DictConfig) -> None:
     # read dataset statistics to get model size
     # we always derive statistics from training set
     # TODO check against validation and testing
-    resolved_dataset_dir = os.path.join(hydra.utils.to_absolute_path("."), cfg.train.dataset_dir)
+    resolved_dataset_dir = os.path.join(
+        hydra.utils.to_absolute_path("."), cfg.train.dataset_dir
+    )
     with open(os.path.join(resolved_dataset_dir, "training_statistics.yml"), "r") as f:
         dataset_stats = yaml.load(f, Loader=yaml.SafeLoader)
 
@@ -47,7 +49,9 @@ def train(cfg: DictConfig) -> None:
     # if we want to continue training and there are saved models already get the one with the most steps
     # we also need to resolve the model_dir because it is not in hydra CWD
     if cfg.train.continue_training and cfg.train.model_load_dir:
-        resolved_model_load_dir = os.path.join(hydra.utils.to_absolute_path("."), cfg.train.model_load_dir)
+        resolved_model_load_dir = os.path.join(
+            hydra.utils.to_absolute_path("."), cfg.train.model_load_dir
+        )
         pattern = os.path.join(resolved_model_load_dir, "neuroment2_????????.model")
 
         # get all checkpoints and sort out the one with the most steps
@@ -74,8 +78,10 @@ def train(cfg: DictConfig) -> None:
         step = -1
         epoch = -1
 
-        log.info("No model checkpoint found in '%s', starting training from scratch."
-                 % os.path.abspath(cfg.train.model_save_dir))
+        log.info(
+            "No model checkpoint found in '%s', starting training from scratch."
+            % os.path.abspath(cfg.train.model_save_dir)
+        )
 
     # init optimizer. we use Adam with weight decay
     optimizer = torch.optim.AdamW(
@@ -147,7 +153,7 @@ def train(cfg: DictConfig) -> None:
     test_writer = SummaryWriter(os.path.join(cfg.train.tensorboard_dir, "test"))
 
     # create loss function
-    loss_fn_1, loss_fn_2 = _get_loss_functions()
+    loss_fn_1, loss_fn_2, loss_fn_3 = _get_loss_functions(cfg)
 
     # set model to training mode
     model.train()
@@ -163,7 +169,9 @@ def train(cfg: DictConfig) -> None:
         epoch += 1
 
         # create new progress bar
-        prog_bar = tqdm(total=len(train_loader), desc="Training epoch: %d, step: %d" % (epoch, step))
+        prog_bar = tqdm(
+            total=len(train_loader), desc="Training epoch: %d, step: %d" % (epoch, step)
+        )
 
         for i_batch, (x, y_ref) in enumerate(train_loader):
             # increase step counter
@@ -182,7 +190,12 @@ def train(cfg: DictConfig) -> None:
             # compute losses
             loss_1 = loss_fn_1(y_pred, y_ref)
             loss_2 = loss_fn_2(y_pred, y_ref)
-            total_loss = loss_1 * cfg.train.loss_weights[0] + loss_2 * cfg.train.loss_weights[1]
+            loss_3 = loss_fn_3(y_pred, y_ref)
+            total_loss = (
+                loss_1 * cfg.train.loss_weights["bce"]
+                + loss_2 * cfg.train.loss_weights["mse"]
+                + loss_3 * cfg.train.loss_weights["bce_per_instrument"]
+            )
 
             # backwards-propagate loss and update weights in model
             total_loss.backward()
@@ -191,14 +204,14 @@ def train(cfg: DictConfig) -> None:
             # compute average loss over the last n_batches_per_average batches
             loss_list.append(float(total_loss))
             if len(loss_list) > cfg.train.n_batches_per_average:
-                loss_list = loss_list[-cfg.train.n_batches_per_average:]
+                loss_list = loss_list[-cfg.train.n_batches_per_average :]
             avg_total_loss = np.mean(loss_list)
 
             # update progress bar. don't force-refresh because that will create a new line
             prog_bar.set_postfix(
                 {
                     "Batch": i_batch + 1,
-                    'Loss (avg)': avg_total_loss,
+                    "Loss (avg)": avg_total_loss,
                 },
                 refresh=False,
             )
@@ -208,14 +221,32 @@ def train(cfg: DictConfig) -> None:
             train_writer.add_scalar("losses/loss_1", loss_1, global_step=step)
             train_writer.add_scalar("losses/loss_2", loss_2, global_step=step)
             train_writer.add_scalar("losses/total_loss", total_loss, global_step=step)
-            train_writer.add_scalar("losses/avg_total_loss", avg_total_loss, global_step=step)
-            train_writer.add_scalar("misc/learning_rate", optimizer.param_groups[0]['lr'], global_step=step)
+            train_writer.add_scalar(
+                "losses/avg_total_loss", avg_total_loss, global_step=step
+            )
+            train_writer.add_scalar(
+                "misc/learning_rate", optimizer.param_groups[0]["lr"], global_step=step
+            )
             train_writer.add_scalar("misc/epoch", epoch, global_step=step)
 
             # save checkpoint
-            if (cfg.train.model_checkpoint_interval != -1) and (step % cfg.train.model_checkpoint_interval == 0):
-                checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
-                _save_model(checkpoint_path, model, optimizer, scheduler, step, epoch, dataset_stats, cfg)
+            if (cfg.train.model_checkpoint_interval != -1) and (
+                step % cfg.train.model_checkpoint_interval == 0
+            ):
+                checkpoint_path = "%s/neuroment2_%.8d.model" % (
+                    cfg.train.model_save_dir,
+                    step,
+                )
+                _save_model(
+                    checkpoint_path,
+                    model,
+                    optimizer,
+                    scheduler,
+                    step,
+                    epoch,
+                    dataset_stats,
+                    cfg,
+                )
 
         # run validation loop
         val_loss = validation(
@@ -236,7 +267,9 @@ def train(cfg: DictConfig) -> None:
 
     # save final model state
     checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
-    _save_model(checkpoint_path, model, optimizer, scheduler, step, epoch, dataset_stats, cfg)
+    _save_model(
+        checkpoint_path, model, optimizer, scheduler, step, epoch, dataset_stats, cfg
+    )
 
     # benchmark the test set
     test_loss = validation(
@@ -264,11 +297,13 @@ def validation(
     device: torch.device,
 ):
     # get loss function objects
-    loss_fn_1, loss_fn_2 = _get_loss_functions()
+    loss_fn_1, loss_fn_2, loss_fn_3 = _get_loss_functions(cfg)
 
     with torch.no_grad():
         # create new progress bar
-        prog_bar = tqdm(total=len(val_loader), desc="Validation epoch: %d, step: %d" % (epoch, step))
+        prog_bar = tqdm(
+            total=len(val_loader), desc="Validation epoch: %d, step: %d" % (epoch, step)
+        )
 
         # init loss_list
         loss_list = []
@@ -284,19 +319,24 @@ def validation(
             # compute losses
             loss_1 = loss_fn_1(y_pred, y_ref)
             loss_2 = loss_fn_2(y_pred, y_ref)
-            total_loss = loss_1 * cfg.train.loss_weights[0] + loss_2 * cfg.train.loss_weights[1]
+            loss_3 = loss_fn_3(y_pred, y_ref)
+            total_loss = (
+                loss_1 * cfg.train.loss_weights["bce"]
+                + loss_2 * cfg.train.loss_weights["mse"]
+                + loss_3 * cfg.train.loss_weights["bce_per_instrument"]
+            )
 
             # compute average loss over the last n_batches_per_average batches
             loss_list.append(float(total_loss))
             if len(loss_list) > cfg.train.n_batches_per_average:
-                loss_list = loss_list[-cfg.train.n_batches_per_average:]
+                loss_list = loss_list[-cfg.train.n_batches_per_average :]
             avg_total_loss = np.mean(loss_list)
 
             # update progress bar. don't force-refresh because that will create a new line
             prog_bar.set_postfix(
                 {
                     "Batch": i_batch + 1,
-                    'Loss (avg)': avg_total_loss,
+                    "Loss (avg)": avg_total_loss,
                 },
                 refresh=False,
             )
@@ -306,7 +346,9 @@ def validation(
             val_writer.add_scalar("losses/loss_1", loss_1, global_step=step)
             val_writer.add_scalar("losses/loss_2", loss_2, global_step=step)
             val_writer.add_scalar("losses/total_loss", total_loss, global_step=step)
-            val_writer.add_scalar("losses/avg_total_loss", avg_total_loss, global_step=step)
+            val_writer.add_scalar(
+                "losses/avg_total_loss", avg_total_loss, global_step=step
+            )
 
     # close progress bar s.t. it is flushed
     prog_bar.close()
@@ -315,9 +357,10 @@ def validation(
     return np.mean(loss_list)
 
 
-def _save_model(checkpoint_path, model, optimizer, scheduler, step, epoch, dataset_stats, cfg):
-    """ A simple utility function to save a model checkpoint.
-    """
+def _save_model(
+    checkpoint_path, model, optimizer, scheduler, step, epoch, dataset_stats, cfg
+):
+    """A simple utility function to save a model checkpoint."""
     torch.save(
         {
             "model": model.state_dict(),
@@ -334,10 +377,28 @@ def _save_model(checkpoint_path, model, optimizer, scheduler, step, epoch, datas
     log.info("Saved model checkpoint '%s'." % checkpoint_path)
 
 
-def _get_loss_functions():
-    """ Returns new loss function objects
-    """
-    return torch.nn.BCELoss(), torch.nn.MSELoss()
+def _get_loss_functions(cfg: DictConfig):
+    """Returns new loss function objects"""
+    weight_per_instrument = torch.zeros(size=[8])
+
+    # we assume that it's possible that the order of instruments in cfg["class_labels"] is different
+    # then the order in cfg["train"]["bce_weight_per_instrument"]
+    # due to that we dynamically search for the corresponding bce weight
+    for i_class, class_label in enumerate(cfg["class_labels"]):
+        for instrument in cfg["train"]["bce_weight_per_instrument"].keys():
+            # the list of instruments must always be the same
+            assert instrument in cfg["class_labels"]
+
+            if instrument == class_label:
+                weight_per_instrument[i_class] = cfg["train"][
+                    "bce_weight_per_instrument"
+                ][class_label]
+
+    return (
+        torch.nn.BCELoss(),
+        torch.nn.MSELoss(),
+        BinaryCrossentropyPerInstrument(weight_per_instrument=weight_per_instrument),
+    )
 
 
 if __name__ == "__main__":
