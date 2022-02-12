@@ -328,6 +328,7 @@ def validation(
             loss_2 = loss_fn_2(y_pred, y_ref)
             loss_3 = loss_fn_3(y_pred, y_ref)
             loss_4 = loss_fn_4(y_pred, y_ref)
+            loss_5 = loss_fn_5(y_pred, y_ref)
             total_loss = (
                 loss_1 * cfg.train.loss_weights["bce"]
                 + loss_2 * cfg.train.loss_weights["mse"]
