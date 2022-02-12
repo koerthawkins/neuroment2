@@ -57,3 +57,31 @@ class FrobeniusLoss(nn.Module):
 
         # return average frobenius norm
         return torch.mean(frobenius_norm)
+
+
+class CompressedSpectralLoss(nn.Module):
+    def __init__(self, loudness_exponent: float = 0.6):
+        super(CompressedSpectralLoss, self).__init__()
+
+        self.loudness_exponent = loudness_exponent
+
+    def forward(self, predictions, labels):
+        """Computes and returns the loss.
+
+        Expected input shape(s): [n_batches, n_instruments, n_time_frames]
+        """
+        # compute absolute difference
+        p = torch.abs(predictions + 1e-08)
+        l = torch.abs(labels + 1e-08)
+
+        # clamp values s.t. we don't hit numerical stability
+        with torch.no_grad():
+            p = torch.clamp(p, min=1e-08)
+            l = torch.clamp(l, min=1e-08)
+
+        p = torch.pow(p, self.loudness_exponent)
+        l = torch.pow(l, self.loudness_exponent)
+
+        diff_matrix = torch.pow(torch.abs(p - l), 2.0)
+
+        return torch.mean(diff_matrix)

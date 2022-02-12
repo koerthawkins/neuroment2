@@ -153,7 +153,7 @@ def train(cfg: DictConfig) -> None:
     test_writer = SummaryWriter(os.path.join(cfg.train.tensorboard_dir, "test"))
 
     # create loss function
-    loss_fn_1, loss_fn_2, loss_fn_3, loss_fn_4 = _get_loss_functions(cfg)
+    loss_fn_1, loss_fn_2, loss_fn_3, loss_fn_4, loss_fn_5 = _get_loss_functions(cfg)
 
     # set model to training mode
     model.train()
@@ -192,11 +192,13 @@ def train(cfg: DictConfig) -> None:
             loss_2 = loss_fn_2(y_pred, y_ref)
             loss_3 = loss_fn_3(y_pred, y_ref)
             loss_4 = loss_fn_4(y_pred, y_ref)
+            loss_5 = loss_fn_5(y_pred, y_ref)
             total_loss = (
                 loss_1 * cfg.train.loss_weights["bce"]
                 + loss_2 * cfg.train.loss_weights["mse"]
                 + loss_3 * cfg.train.loss_weights["bce_per_instrument"]
                 + loss_4 * cfg.train.loss_weights["frobenius"]
+                + loss_5 * cfg.train.loss_weights["compressed_spectral"]
             )
 
             # backwards-propagate loss and update weights in model
@@ -224,6 +226,7 @@ def train(cfg: DictConfig) -> None:
             train_writer.add_scalar("losses/loss_2", loss_2, global_step=step)
             train_writer.add_scalar("losses/loss_3", loss_3, global_step=step)
             train_writer.add_scalar("losses/loss_4", loss_4, global_step=step)
+            train_writer.add_scalar("losses/loss_5", loss_5, global_step=step)
             train_writer.add_scalar("losses/total_loss", total_loss, global_step=step)
             train_writer.add_scalar(
                 "losses/avg_total_loss", avg_total_loss, global_step=step
@@ -301,7 +304,7 @@ def validation(
     device: torch.device,
 ):
     # get loss function objects
-    loss_fn_1, loss_fn_2, loss_fn_3, loss_fn_4 = _get_loss_functions(cfg)
+    loss_fn_1, loss_fn_2, loss_fn_3, loss_fn_4, loss_fn_5 = _get_loss_functions(cfg)
 
     with torch.no_grad():
         # create new progress bar
@@ -330,6 +333,7 @@ def validation(
                 + loss_2 * cfg.train.loss_weights["mse"]
                 + loss_3 * cfg.train.loss_weights["bce_per_instrument"]
                 + loss_4 * cfg.train.loss_weights["frobenius"]
+                + loss_5 * cfg.train.loss_weights["compressed_spectral"]
             )
 
             # compute average loss over the last n_batches_per_average batches
@@ -353,6 +357,7 @@ def validation(
             val_writer.add_scalar("losses/loss_2", loss_2, global_step=step)
             val_writer.add_scalar("losses/loss_3", loss_3, global_step=step)
             val_writer.add_scalar("losses/loss_4", loss_4, global_step=step)
+            val_writer.add_scalar("losses/loss_5", loss_5, global_step=step)
             val_writer.add_scalar("losses/total_loss", total_loss, global_step=step)
             val_writer.add_scalar(
                 "losses/avg_total_loss", avg_total_loss, global_step=step
@@ -407,6 +412,7 @@ def _get_loss_functions(cfg: DictConfig):
         torch.nn.MSELoss(),
         BinaryCrossentropyPerInstrument(weight_per_instrument=weight_per_instrument),
         FrobeniusLoss(),
+        CompressedSpectralLoss(),
         # torch.nn.KLDivLoss(),
     )
 
