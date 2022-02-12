@@ -72,14 +72,15 @@ train:
   n_batches_per_average: 100
   # if a value > 0 we save model checkpoints at multiples of this interval
   # if -1 we don't save checkpoints
-  model_checkpoint_interval: -1
+  model_checkpoint_interval: 5000
   gpu_index: 0
   use_batch_norm: True
   dropout_rate: 0.1
   loss_weights:
     bce: 0.5
     mse: 0.0
-    bce_per_instrument: 0.5
+    bce_per_instrument: 0.0
+    frobenius: 0.5
   # weight of each instrument in the BinaryCrossentropy-per-instrument loss
   bce_weight_per_instrument:
     clarinet: 1.0
@@ -96,9 +97,9 @@ inference:
   # predictions will also be written there!
   audio_dir: "data/test/"
   # full path to model we want to use for prediction
-  model_path: results/model_training_only-bce_20220203/oversampling-2p0_mel_5epochs-data_150epochs-training_only-bce/models/neuroment2_00149791.model
+  model_path: neuroment2_00010000.model
   # path where predictions will be saved too
-  predictions_dir: results/model_training_only-bce_20220203/oversampling-2p0_stft_5epochs-data_150epochs-training_only-bce/predictions
+  predictions_dir: predictions/
   gpu_index: 0
 
 # parameters for AdamW optimizer

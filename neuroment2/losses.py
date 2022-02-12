@@ -34,3 +34,23 @@ class BinaryCrossentropyPerInstrument(nn.Module):
             )
 
         return total_loss
+
+
+class FrobeniusLoss(nn.Module):
+    def __init__(self):
+        super(FrobeniusLoss, self).__init__()
+
+    def forward(self, predictions, labels):
+        """Computes and returns the loss.
+
+        Expected input shape(s): [n_batches, n_instruments, n_time_frames]
+        """
+        # compute difference matrix
+        d = predictions - labels
+
+        # compute frobenius norm
+        total_loss = 0.0
+        for i_batch in range(predictions.shape[0]):
+            total_loss += torch.linalg.norm(d[i_batch, :, :], ord="fro")
+
+        return total_loss
