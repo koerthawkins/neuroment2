@@ -77,11 +77,11 @@ train:
   use_batch_norm: True
   dropout_rate: 0.1
   loss_weights:
-    bce: 0.5
+    bce: 1.0
     mse: 0.0
     bce_per_instrument: 0.0
     frobenius: 0.0
-    compressed_spectral: 0.5
+    compressed_spectral: 0.0
   # weight of each instrument in the BinaryCrossentropy-per-instrument loss
   bce_weight_per_instrument:
     clarinet: 1.0
@@ -98,7 +98,7 @@ inference:
   # predictions will also be written there!
   audio_dir: "data/test/"
   # full path to model we want to use for prediction
-  model_path: neuroment2_00040000.model
+  model_path: neuroment2_00020000.model
   # path where predictions will be saved too
   predictions_dir: predictions/
   gpu_index: 0
