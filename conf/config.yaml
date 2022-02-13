@@ -103,7 +103,7 @@ inference:
   # predictions will also be written there!
   audio_dir: "data/test/"
   # full path to model we want to use for prediction
-  model_path: neuroment2_00035000.model
+  model_path: neuroment2_00060000.model
   # path where predictions will be saved too
   predictions_dir: predictions/
   gpu_index: 0

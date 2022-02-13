@@ -385,6 +385,7 @@ def _save_model(
             "dataset_stats": dataset_stats,  # samplerate, hopsize, feature_generator.cfg, etc.
             "use_batch_norm": cfg.train.use_batch_norm,
             "dropout_rate": cfg.train.dropout_rate,
+            "standardize_features": cfg.train.standardize_features,
         },
         checkpoint_path,
     )

@@ -78,6 +78,10 @@ def inference(cfg: DictConfig) -> None:
             if len(features.shape) == 2:
                 features = features[np.newaxis, ...]
 
+            # standardize features if model was trained with standardized features
+            if state_dict_model["standardize_features"]:
+                features = standardize_features(features)
+
             # convert to pytorch tensor and add batch dimensions
             features = torch.Tensor(features).unsqueeze(0)
 
