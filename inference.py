@@ -33,6 +33,7 @@ def inference(cfg: DictConfig) -> None:
 
     # create model
     model = NeuromentModel(
+        num_channels=dataset_stats["num_channels"],
         num_instruments=dataset_stats["num_instruments"],
         num_input_features=dataset_stats["num_features_per_observation"],
         num_input_frames=dataset_stats["num_frames_per_observation"],
@@ -79,7 +80,7 @@ def inference(cfg: DictConfig) -> None:
                 features = features[np.newaxis, ...]
 
             # standardize features if model was trained with standardized features
-            if state_dict_model["standardize_features"]:
+            if state_dict_model.get("standardize_features", False):
                 features = standardize_features(features)
 
             # convert to pytorch tensor and add batch dimensions

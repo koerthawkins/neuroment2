@@ -319,7 +319,7 @@ class Mixer:
         else:
             statistics["num_frames_per_observation"] = self.cfg_mixes["num_frames"]
 
-        if self.cfg["feature"] == "CQT":
+        if self.cfg["feature"] in ["CQT", "CQT+MEL"]:
             statistics["num_features_per_observation"] = (
                 self.cfg["num_octaves"] * self.cfg["num_bins_per_octave"]
             )
@@ -327,11 +327,12 @@ class Mixer:
             statistics["num_features_per_observation"] = self.cfg["Mix"]["dft_size"] // 2 + 1
         elif self.cfg["feature"] == "MEL":
             statistics["num_features_per_observation"] = self.cfg["num_mels"]
-        elif self.cfg["feature"] == "CQT+MEL":
-            statistics["num_features_per_observation"] = (
-                self.cfg["num_octaves"] * self.cfg["num_bins_per_octave"]
-            )
-            
+
+        if self.cfg["feature"] == "CQT+MEL":
+            statistics["num_channels"] = 2
+        else:
+            statistics["num_channels"] = 1
+
         statistics["feature"] = self.cfg["feature"]
         statistics["dft_size"] = self.cfg_mixes["dft_size"]
         statistics["hopsize"] = self.cfg_mixes["hopsize"]

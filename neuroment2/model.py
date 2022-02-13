@@ -10,6 +10,7 @@ from torchinfo import summary
 class NeuromentModel(nn.Module):
     def __init__(
         self,
+        num_channels: int,
         num_instruments: int,  # our number of classes
         num_input_features: int,
         num_input_frames: int,
@@ -19,6 +20,7 @@ class NeuromentModel(nn.Module):
         """ Creates the NeuromentModel.
 
         Args:
+            num_channels: number of channels in features.
             num_instruments: number of instruments (i.e. number of output classes)
             num_input_features: length of feature vector (e.g. 128 for 128 bin mel-spectrogram)
             num_input_frames: number of input frames (e.g. derived frame FFT-frame size and hop size)
@@ -26,6 +28,7 @@ class NeuromentModel(nn.Module):
         """
         super(NeuromentModel, self).__init__()
 
+        self.num_channels = num_channels
         self.num_instruments = num_instruments  # i.e. num_output_features
         self.num_input_features = num_input_features
         self.num_input_frames = num_input_frames
@@ -36,7 +39,7 @@ class NeuromentModel(nn.Module):
         pool_size_2 = 2
         pool_size_3 = 4
 
-        self.conv_1 = ConvBlock(1, 16, (3, 3), stride=(1, 1), padding=(3 // 2, 3 // 2),
+        self.conv_1 = ConvBlock(num_channels, 16, (3, 3), stride=(1, 1), padding=(3 // 2, 3 // 2),
                                 use_batch_norm=self.use_batch_norm)
         self.conv_2 = ConvBlock(16, 16, (3, 3), stride=(1, 1), padding=(3 // 2, 3 // 2),
                                 use_batch_norm=self.use_batch_norm)
