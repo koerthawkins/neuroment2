@@ -67,9 +67,14 @@ train:
   training_steps: -1
   training_epochs: -1
   continue_training: True
+  # number of workers used in pytorch dataloader
   num_workers: 0
+  # batch size for training and validation data
   batch_size: 32
+  # number of batches that are used to average losses
   n_batches_per_average: 100
+  # whether to standardize features to 0 mean and 1 var or not
+  standardize_features: True
   # if a value > 0 we save model checkpoints at multiples of this interval
   # if -1 we don't save checkpoints
   model_checkpoint_interval: 5000
@@ -98,7 +103,7 @@ inference:
   # predictions will also be written there!
   audio_dir: "data/test/"
   # full path to model we want to use for prediction
-  model_path: neuroment2_00149791.model
+  model_path: neuroment2_00035000.model
   # path where predictions will be saved too
   predictions_dir: predictions/
   gpu_index: 0

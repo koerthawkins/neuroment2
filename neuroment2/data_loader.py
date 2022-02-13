@@ -12,17 +12,20 @@ class Neuroment2Dataset(Dataset):
 
     def __init__(
         self,
-        dataset_dir,
-        data_type,
+        dataset_dir: str,
+        data_type: str,
+        standardize_features: bool = True,
     ):
         """Initialize the Dataset object.
 
         Args:
             dataset_dir (str): Dataset directory with pickle files.
             data_type (str): Either "training", "validation" or "test".
+            standardize_features (str): Whether to standardize features to 0 mean and 1 var or not.
         """
         self.dataset_dir = dataset_dir
         self.data_type = data_type
+        self.standardize_features = standardize_features
 
         if self.data_type not in ["training", "test", "validation"]:
             raise RuntimeError("Data type '%s' is invalid!" % self.data_type)
@@ -47,4 +50,23 @@ class Neuroment2Dataset(Dataset):
             features = features[np.newaxis, ...]
         labels = data.labels_mix
 
+        if self.standardize_features:
+            features = self._standardize_features(features)
+
         return features.astype("float32"), labels.astype("float32")
+
+    def _standardize_features(self, features: np.ndarray):
+        """ Standardizes features to 0 mean and 1 var accross time dimension.
+        """
+        features_scaled = np.zeros(features.shape)
+
+        for channel in range(features.shape[0]):
+            # compute mean and standard deviation over time dimension
+            mean = np.mean(features[channel, :, :], axis=-1)
+            std = np.std(features[channel, :, :], axis=-1)
+
+            # scale features
+            features_scaled[channel, :, :] = (features[channel, :, :] - mean[:, np.newaxis]) / \
+                                                (std[:, np.newaxis] + 1e-12)
+
+        return features_scaled
