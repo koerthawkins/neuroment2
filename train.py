@@ -116,6 +116,7 @@ def train(cfg: DictConfig) -> None:
     train_dataset = Neuroment2Dataset(
         resolved_dataset_dir,
         "training",
+        standardize_features=cfg.train.standardize_features,
     )
     train_loader = DataLoader(
         train_dataset,
@@ -128,6 +129,7 @@ def train(cfg: DictConfig) -> None:
     val_dataset = Neuroment2Dataset(
         resolved_dataset_dir,
         "validation",
+        standardize_features=cfg.train.standardize_features,
     )
     val_loader = DataLoader(
         val_dataset,
@@ -140,6 +142,7 @@ def train(cfg: DictConfig) -> None:
     test_dataset = Neuroment2Dataset(
         resolved_dataset_dir,
         "test",
+        standardize_features=cfg.train.standardize_features,
     )
     test_loader = DataLoader(
         test_dataset,

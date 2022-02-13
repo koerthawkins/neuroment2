@@ -15,7 +15,7 @@ class Neuroment2Dataset(Dataset):
         self,
         dataset_dir: str,
         data_type: str,
-        standardize_features: bool = True,
+        standardize_features: bool,
     ):
         """Initialize the Dataset object.
 
