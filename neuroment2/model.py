@@ -77,7 +77,7 @@ class NeuromentModel(nn.Module):
         summary_str = summary(
             self,
             input_size=(
-                1,
+                self.num_channels,
                 self.num_input_features,
                 self.num_input_frames,
             ),
