@@ -42,7 +42,9 @@ class Neuroment2Dataset(Dataset):
             data = pickle.load(f)
 
         features = data.feature_mix
-        features = features[np.newaxis, ...]
+        if len(features.shape) == 2:
+            # add channel dimension
+            features = features[np.newaxis, ...]
         labels = data.labels_mix
 
         return features.astype("float32"), labels.astype("float32")

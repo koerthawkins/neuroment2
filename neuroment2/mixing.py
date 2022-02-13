@@ -43,10 +43,20 @@ class FeatureGenerator:
                 fmin=self.f_min,
                 window=self.window,
         )
+        # filter bank for standalone mel features
         self.mel_filter_bank = lb.filters.mel(
                 sr=self.sr,
                 n_fft=self.dft_size,
                 n_mels=self.num_mels,
+                fmin=self.f_min,
+                fmax=self.f_max,
+                norm=1.0,
+        )
+        # filter bank for CQT+MEL features
+        self.mel_filter_bank_combo_features = lb.filters.mel(
+                sr=self.sr,
+                n_fft=self.dft_size,
+                n_mels=len(self.cqt_lengths),
                 fmin=self.f_min,
                 fmax=self.f_max,
                 norm=1.0,
@@ -67,6 +77,7 @@ class FeatureGenerator:
 
             cqt /= self.cqt_lengths[:, None]
             feature = np.log(cqt + 1e-12)
+
             if self.envelope_type == "SPECTRUM":
                 envelope = np.sum((cqt ** 2.0), axis=0)
             else:
@@ -83,6 +94,7 @@ class FeatureGenerator:
             )
             stft /= self.dft_size
             feature = np.log(stft + 1e-12)
+
             if self.envelope_type == "SPECTRUM":
                 envelope = np.sum(stft ** 2.0, axis=0)
             else:
@@ -101,12 +113,55 @@ class FeatureGenerator:
 
             mel = np.dot(self.mel_filter_bank, stft)
             feature = np.log(mel + 1e-12)
+
             if self.envelope_type == "SPECTRUM":
                 envelope = np.sum(mel ** 2.0, axis=0)
             else:
                 envelope = self._compute_rms_envelope(audio)
+        elif self.feature == "CQT+MEL":
+            cqt = lb.cqt(
+                audio,
+                hop_length=self.hopsize,
+                n_bins=self.num_bins_per_octave * self.num_octaves,
+                bins_per_octave=self.num_bins_per_octave,
+                fmin=self.f_min,
+                window=self.window,
+                scale=False,
+            )
+            cqt = np.abs(cqt)
+
+            cqt /= self.cqt_lengths[:, None]
+            cqt = np.log(cqt + 1e-12)
+
+            stft = np.abs(
+                lb.core.stft(
+                    audio,
+                    n_fft=self.dft_size,
+                    hop_length=self.hopsize,
+                    window=self.window,
+                    center=self.center,
+                )
+            )
+            stft /= self.dft_size
+
+            mel = np.dot(self.mel_filter_bank_combo_features, stft)
+            mel = np.log(mel + 1e-12)
+
+            # pack CQT into first and MEL into second channel
+            feature = np.zeros(shape=[2] + list(cqt.shape))
+            feature[0, :, :] += cqt
+            feature[1, :, :] += mel
+
+            # here only RMS envelope makes sense
+            envelope = self._compute_rms_envelope(audio)
+
         else:
             raise KeyError("feature type not available")
+
+        # add channel dimension to features if they aren't in features yet
+        if len(feature.shape) == 2:
+            assert feature.shape[0] != 1
+            feature = feature[np.newaxis, ...]
 
         return feature, envelope
 
@@ -367,7 +422,7 @@ class Mix:
 
         audio_mix = np.sum(np.stack(self.wav_files) * levels[:, np.newaxis], axis=0)
         feature_mix, _ = feature_generator.generate(audio_mix)
-        labels_mix = np.zeros((self.num_instruments, feature_mix.shape[1]))
+        labels_mix = np.zeros([self.num_instruments, feature_mix.shape[-1]])
         for i in range(self.num_files):
             labels_mix[self.label_list[i], :] = self.envelopes[i]
         if not save_wav_data:

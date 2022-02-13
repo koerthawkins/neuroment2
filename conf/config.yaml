@@ -35,7 +35,7 @@ Mixer:
   num_instruments_mix: [1, 4]
   num_instruments: 8
   num_samples_per_file: 131072
-  # options: CQT, STFT, MEL
+  # options: CQT, STFT, MEL, CQT+MEL
   feature: "MEL"
   # options: "SPECTRUM" (use spectral data to compute envelope), "RMS" (RMS computed in time domain)
   envelope_type: "RMS"
@@ -98,7 +98,7 @@ inference:
   # predictions will also be written there!
   audio_dir: "data/test/"
   # full path to model we want to use for prediction
-  model_path: neuroment2_00020000.model
+  model_path: neuroment2_00149791.model
   # path where predictions will be saved too
   predictions_dir: predictions/
   gpu_index: 0
