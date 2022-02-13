@@ -26,11 +26,12 @@ class BinaryCrossentropyPerInstrument(nn.Module):
         for i_instrument in range(predictions.shape[1]):
             # compute the BinaryCrossentropy of only the current instrument and multiply it with
             # its weight
+            # also consider numerical instability
             total_loss += self.weight_per_instrument[
                 i_instrument
             ] * F.binary_cross_entropy(
-                predictions[:, i_instrument, :],
-                labels[:, i_instrument, :],
+                predictions[:, i_instrument, :] + 1e-10,
+                labels[:, i_instrument, :] + 1e-10,
             )
 
         return total_loss
