@@ -74,8 +74,12 @@ def inference(cfg: DictConfig) -> None:
             # generate features
             features, envelope_ref = feature_gen.generate(audio)
 
-            # convert to pytorch tensor and add batch and channel dimensions
-            features = torch.Tensor(features).unsqueeze(0).unsqueeze(0)
+            # add channel dimension
+            if len(features.shape) == 2:
+                features = features[np.newaxis, ...]
+
+            # convert to pytorch tensor and add batch dimensions
+            features = torch.Tensor(features).unsqueeze(0)
 
             # move features to device
             features = features.to(device)
