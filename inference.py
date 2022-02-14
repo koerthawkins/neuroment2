@@ -116,7 +116,7 @@ def inference(cfg: DictConfig) -> None:
             plt.subplot(1, 1, 1)
 
             # imshow() automatically interpolates, so we use matshow()
-            plt.matshow(_to_db(envelope_pred), fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
+            plt.matshow(to_db(envelope_pred), fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
 
             plt.colorbar(label="amplitude / dB")
 
@@ -142,11 +142,13 @@ def inference(cfg: DictConfig) -> None:
             log.info("Saved '%s'." % plot_file_path)
 
             if "sequence" in input_file.lower():
-                envelope_ref = _compute_reference_envelopes(
+                envelope_ref = compute_reference_envelopes(
                     cfg,
                     audio,
                     dataset_stats["feature_generator_cfg"],
                     n_frames_total,
+                    sample_length_per_instrument=5.0,
+                    total_sample_length=len(audio) / float(dataset_stats["sr"]),
                 )
 
                 # compute some plot variables
@@ -159,7 +161,7 @@ def inference(cfg: DictConfig) -> None:
 
                 # plot predicted envelopes
                 plt.subplot(2, 1, 1)
-                plt.matshow(_to_db(envelope_pred), fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
+                plt.matshow(to_db(envelope_pred), fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
                 plt.colorbar(label="amplitude / dB")
                 plt.xticks(ticks=np.arange(0, n_frames_total)[::step_width], labels=t_string[::step_width])
                 plt.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
@@ -170,7 +172,7 @@ def inference(cfg: DictConfig) -> None:
 
                 # plot reference envelopes
                 plt.subplot(2, 1, 2)
-                plt.matshow(_to_db(envelope_ref), fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
+                plt.matshow(to_db(envelope_ref), fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
                 plt.colorbar(label="amplitude / dB")
                 plt.xticks(ticks=np.arange(0, n_frames_total)[::step_width], labels=t_string[::step_width])
                 plt.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
@@ -189,6 +191,21 @@ def inference(cfg: DictConfig) -> None:
                 fig.savefig(plot_file_path)
                 log.info("Saved '%s'." % plot_file_path)
 
+                # compute noise and leakage matrix
+                noise_matrix = compute_noise_matrix(
+                    envelope_pred,
+                    envelope_ref,
+                    sample_length_per_instrument=5.0,
+                    total_sample_length=len(audio) / float(dataset_stats["sr"]),
+                )
+                leakage_matrix = compute_leakage_matrix(
+                    envelope_pred,
+                    envelope_ref,
+                    sample_length_per_instrument=5.0,
+                    total_sample_length=len(audio) / float(dataset_stats["sr"]),
+                )
+                log.info("Computed noise and leakage matrices.")
+
             # save predictions to CSV too
             for i_instrument, instrument in enumerate(cfg.class_labels):
                 csv_file_path = os.path.join(
@@ -206,41 +223,6 @@ def inference(cfg: DictConfig) -> None:
 
         # finish
         log.info("Finished.")
-
-
-def _compute_reference_envelopes(cfg: DictConfig, audio: np.ndarray, feature_generator_cfg: dict, n_frames_total: int):
-    """ Computes the reference envelopes for Sequence_1.flac and returns them.
-
-        We assume that each instrument plays exactly for 5s.
-    """
-    # init envelopes
-    envelopes = np.zeros(shape=[len(cfg.class_labels), n_frames_total])
-
-    for i_class, _ in enumerate(cfg.class_labels):
-        start_sample = 5.0 * feature_generator_cfg["Mix"]["sr"] * i_class
-        stop_sample = np.min([5.0 * feature_generator_cfg["Mix"]["sr"] * (i_class + 1), len(audio)])
-
-        # TODO this is not perfectly accurate! it doesn't consider the initial frame AND centering!
-        start_frame = int(start_sample // feature_generator_cfg["Mix"]["hopsize"])
-
-        audio_current_instrument = audio[int(start_sample):int(stop_sample)]
-
-        rms = lb.feature.rms(
-            audio_current_instrument,
-            frame_length=feature_generator_cfg["Mix"]["dft_size"],
-            hop_length=feature_generator_cfg["Mix"]["hopsize"],
-            center=feature_generator_cfg["center"],
-        )[0, :]
-
-        envelopes[i_class, start_frame:start_frame + len(rms)] = rms
-
-    return envelopes
-
-
-def _to_db(spectrum: np.ndarray):
-    """ Converts a spectrum from linear to dB and returns it.
-    """
-    return 20.0 * np.log10(spectrum + 1e-12)
 
 
 if __name__ == "__main__":
