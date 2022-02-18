@@ -8,6 +8,7 @@ import os
 import torch
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from neuroment2 import *
 
@@ -192,18 +193,46 @@ def inference(cfg: DictConfig) -> None:
                 log.info("Saved '%s'." % plot_file_path)
 
                 # compute noise and leakage matrix
-                noise_matrix = compute_noise_matrix(
+                noise_matrix, leakage_matrix = compute_noise_and_leakage_matrices(
                     envelope_pred,
                     envelope_ref,
                     sample_length_per_instrument=5.0,
                     total_sample_length=len(audio) / float(dataset_stats["sr"]),
                 )
-                leakage_matrix = compute_leakage_matrix(
-                    envelope_pred,
-                    envelope_ref,
-                    sample_length_per_instrument=5.0,
-                    total_sample_length=len(audio) / float(dataset_stats["sr"]),
+
+                # plot matrices
+                fmt = ".1f"
+                cmap = "YlGnBu"
+                x_tick_rotation = 45
+
+                fig, _ = plt.subplots(1, 2, figsize=np.array(list(cfg.figsize)) * 1.5)
+
+                plt.subplot(1, 2, 1)
+                sns.heatmap(noise_matrix, annot=True, fmt=fmt, cmap=cmap,
+                            xticklabels=list(cfg.class_labels), yticklabels=list(cfg.class_labels))
+                plt.xlabel("predictions")
+                plt.xticks(rotation=x_tick_rotation)
+                plt.ylabel("labels")
+                plt.title("noise matrix")
+                plt.subplot(1, 2, 2)
+                sns.heatmap(leakage_matrix, annot=True, fmt=fmt, cmap=cmap,
+                            xticklabels=list(cfg.class_labels), yticklabels=list(cfg.class_labels))
+                plt.xlabel("predictions")
+                plt.xticks(rotation=x_tick_rotation)
+                plt.ylabel("labels")
+                plt.title("leakage matrix")
+
+                plt.tight_layout()
+
+                # save plot to file
+                plot_file_path = os.path.join(
+                    cfg.inference.predictions_dir,
+                    os.path.splitext(os.path.basename(input_file))[0] + "_matrices.png",
                 )
+                fig.savefig(plot_file_path)
+                log.info("Saved '%s'." % plot_file_path)
+
+
                 log.info("Computed noise and leakage matrices.")
 
             # save predictions to CSV too
