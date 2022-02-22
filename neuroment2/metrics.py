@@ -83,6 +83,9 @@ def compute_noise_and_leakage_matrices(
 
         Noise is termed as predictions where there should be silence (in labels).
 
+        We need to limit the dynamic range here, otherwise there can be too many outliers
+        for the results to have meaning.
+
     Args:
         cfg:
         predicted_envelopes:
@@ -141,9 +144,8 @@ def compute_noise_and_leakage_matrices(
                 cur_pred_env, min_db=level_range_in_db[0], max_db=level_range_in_db[1]
             )
 
-            # compute difference in envelopes over time in dB
-            # we need to limit the dynamic range here, otherwise there can be too many outliers
-            # for the results to have meaning
+            # value in noise matrix is the average difference between predicted and 0-envelope
+            # over time
             noise_diff_over_time_in_db = (
                 cur_pred_env - cur_label_env_noise - dynamic_range_in_db
             )
@@ -154,18 +156,15 @@ def compute_noise_and_leakage_matrices(
             # leakage only works for frames which have an energy above the min level in db
             leakage_diff_over_time_in_db = cur_pred_env - cur_label_env_leakage
 
-            # only keep differences where energy of prediction is above min level in db
+            # if energy of prediction is not above min level in db we have no leakage
             leakage_diff_over_time_in_db[
                 cur_pred_env < (level_range_in_db[0] + 0.1)
             ] = level_range_in_db[0]
-            if len(leakage_diff_over_time_in_db) > 0:
-                average_difference_in_db = np.mean(leakage_diff_over_time_in_db)
-            else:
-                average_difference_in_db = level_range_in_db[0]
 
+            # average leakage difference over time to get leakage matrix value
             leakage_matrix[
                 i_labeled_instrument, i_predicted_instrument
-            ] = average_difference_in_db
+            ] = np.mean(leakage_diff_over_time_in_db)
 
     # set elements on main diagonal to nan
     if set_main_diagonal_to_nan:

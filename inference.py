@@ -315,6 +315,7 @@ def inference(cfg: DictConfig) -> None:
                     yticklabels=list(cfg.class_labels),
                     vmin=cfg.level_range_in_db[0],
                     vmax=cfg.level_range_in_db[1],
+                    cbar_kws={'label': 'noise / dB'},
                 )
                 plt.xlabel("instrument detected")
                 plt.xticks(rotation=x_tick_rotation)
@@ -335,6 +336,7 @@ def inference(cfg: DictConfig) -> None:
                     yticklabels=list(cfg.class_labels),
                     vmin=cfg.level_range_in_db[0],
                     vmax=cfg.level_range_in_db[1],
+                    cbar_kws={'label': 'leakage / dB'},
                 )
                 plt.xlabel("instrument detected")
                 plt.xticks(rotation=x_tick_rotation)
