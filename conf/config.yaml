@@ -19,6 +19,9 @@ class_labels: ["clarinet", "electric_guitar", "female_singer", "flute",
               "piano", "tenor_saxophone", "trumpet", "violin"]
 # figure size for plots that will be created
 figsize: [8, 4.5]
+# level range in db
+# predictions are clipped to this range
+level_range_in_db: [-60.0, 0.0]
 
 Mixer:
   # absolute path to directory with raw audio files from which features are computed

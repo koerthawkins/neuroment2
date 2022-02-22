@@ -111,13 +111,23 @@ def inference(cfg: DictConfig) -> None:
                 # add predicted and windowed envelope to collected envelope
                 envelope_pred[:, start_index:start_index + num_frames_per_observation] += pred
 
+            # limit dynamic range
+            envelope_pred_unclipped = envelope_pred
+            envelope_pred = np.clip(
+                envelope_pred,
+                a_min=to_linear(cfg.level_range_in_db[0]),
+                a_max=to_linear(cfg.level_range_in_db[1]),
+            )
+
             # plot results
             fig, _ = plt.subplots(1, 1, figsize=cfg.figsize)
 
             plt.subplot(1, 1, 1)
 
             # imshow() automatically interpolates, so we use matshow()
-            plt.matshow(to_db(envelope_pred), fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
+            plt.matshow(to_db(envelope_pred, min_db=cfg.level_range_in_db[0], max_db=cfg.level_range_in_db[1]),
+                        fignum=0, aspect="auto", origin="lower",
+                        vmin=cfg.level_range_in_db[0], vmax=cfg.level_range_in_db[1])
 
             plt.colorbar(label="amplitude / dB")
 
@@ -143,6 +153,7 @@ def inference(cfg: DictConfig) -> None:
             log.info("Saved '%s'." % plot_file_path)
 
             if "sequence" in input_file.lower():
+                # compute reference RMS envelopes for noise and leakage matrices
                 envelope_ref = compute_reference_envelopes(
                     cfg,
                     audio,
@@ -150,6 +161,13 @@ def inference(cfg: DictConfig) -> None:
                     n_frames_total,
                     sample_length_per_instrument=5.0,
                     total_sample_length=len(audio) / float(dataset_stats["sr"]),
+                )
+
+                # also limit dynamic range of reference envelopes
+                envelope_ref = np.clip(
+                    envelope_ref,
+                    a_min=to_linear(cfg.level_range_in_db[0]),
+                    a_max=to_linear(cfg.level_range_in_db[1]),
                 )
 
                 # compute some plot variables
@@ -162,7 +180,9 @@ def inference(cfg: DictConfig) -> None:
 
                 # plot predicted envelopes
                 plt.subplot(2, 1, 1)
-                plt.matshow(to_db(envelope_pred), fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
+                plt.matshow(to_db(envelope_pred, min_db=cfg.level_range_in_db[0], max_db=cfg.level_range_in_db[1]),
+                            fignum=0, aspect="auto", origin="lower",
+                            vmin=cfg.level_range_in_db[0], vmax=cfg.level_range_in_db[1])
                 plt.colorbar(label="amplitude / dB")
                 plt.xticks(ticks=np.arange(0, n_frames_total)[::step_width], labels=t_string[::step_width])
                 plt.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
@@ -173,7 +193,9 @@ def inference(cfg: DictConfig) -> None:
 
                 # plot reference envelopes
                 plt.subplot(2, 1, 2)
-                plt.matshow(to_db(envelope_ref), fignum=0, aspect="auto", origin="lower", vmin=-100, vmax=0)
+                plt.matshow(to_db(envelope_ref, min_db=cfg.level_range_in_db[0], max_db=cfg.level_range_in_db[1]),
+                            fignum=0, aspect="auto", origin="lower",
+                            vmin=cfg.level_range_in_db[0], vmax=cfg.level_range_in_db[1])
                 plt.colorbar(label="amplitude / dB")
                 plt.xticks(ticks=np.arange(0, n_frames_total)[::step_width], labels=t_string[::step_width])
                 plt.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
@@ -183,6 +205,7 @@ def inference(cfg: DictConfig) -> None:
                 plt.ylabel("instruments")
 
                 plt.tight_layout()
+                plt.show()
 
                 # save plot to file
                 plot_file_path = os.path.join(
@@ -198,6 +221,7 @@ def inference(cfg: DictConfig) -> None:
                     envelope_ref,
                     sample_length_per_instrument=5.0,
                     total_sample_length=len(audio) / float(dataset_stats["sr"]),
+                    level_range_in_db=cfg.level_range_in_db,
                 )
 
                 # plot matrices
@@ -205,33 +229,45 @@ def inference(cfg: DictConfig) -> None:
                 cmap = "YlGnBu"
                 x_tick_rotation = 45
 
-                fig, _ = plt.subplots(1, 2, figsize=np.array(list(cfg.figsize)) * 1.5)
+                fig_1, _ = plt.subplots(1, 1, figsize=cfg.figsize)
 
-                plt.subplot(1, 2, 1)
                 sns.heatmap(noise_matrix, annot=True, fmt=fmt, cmap=cmap,
-                            xticklabels=list(cfg.class_labels), yticklabels=list(cfg.class_labels))
-                plt.xlabel("predictions")
+                            xticklabels=list(cfg.class_labels), yticklabels=list(cfg.class_labels),
+                            vmin=cfg.level_range_in_db[0], vmax=cfg.level_range_in_db[1])
+                plt.xlabel("instrument detected")
                 plt.xticks(rotation=x_tick_rotation)
-                plt.ylabel("labels")
-                plt.title("noise matrix")
-                plt.subplot(1, 2, 2)
-                sns.heatmap(leakage_matrix, annot=True, fmt=fmt, cmap=cmap,
-                            xticklabels=list(cfg.class_labels), yticklabels=list(cfg.class_labels))
-                plt.xlabel("predictions")
-                plt.xticks(rotation=x_tick_rotation)
-                plt.ylabel("labels")
-                plt.title("leakage matrix")
+                plt.ylabel("instrument played")
+                plt.title("%s: noise matrix" % os.path.basename(input_file))
 
                 plt.tight_layout()
+                plt.show()
 
-                # save plot to file
+                fig_2, _ = plt.subplots(1, 1, figsize=cfg.figsize)
+
+                sns.heatmap(leakage_matrix, annot=True, fmt=fmt, cmap=cmap,
+                            xticklabels=list(cfg.class_labels), yticklabels=list(cfg.class_labels),
+                            vmin=cfg.level_range_in_db[0], vmax=cfg.level_range_in_db[1])
+                plt.xlabel("instrument detected")
+                plt.xticks(rotation=x_tick_rotation)
+                plt.ylabel("instrument played")
+                plt.title("%s: leakage matrix" % os.path.basename(input_file))
+
+                plt.tight_layout()
+                plt.show()
+
+                # save plots to file
                 plot_file_path = os.path.join(
                     cfg.inference.predictions_dir,
-                    os.path.splitext(os.path.basename(input_file))[0] + "_matrices.png",
+                    os.path.splitext(os.path.basename(input_file))[0] + "_noise-matrix.png",
                 )
-                fig.savefig(plot_file_path)
+                fig_1.savefig(plot_file_path)
                 log.info("Saved '%s'." % plot_file_path)
-
+                plot_file_path = os.path.join(
+                    cfg.inference.predictions_dir,
+                    os.path.splitext(os.path.basename(input_file))[0] + "_leakage-matrix.png",
+                )
+                fig_2.savefig(plot_file_path)
+                log.info("Saved '%s'." % plot_file_path)
 
                 log.info("Computed noise and leakage matrices.")
 
@@ -241,7 +277,8 @@ def inference(cfg: DictConfig) -> None:
                     cfg.inference.predictions_dir,
                     "%s_%s.csv" % (os.path.splitext(os.path.basename(input_file))[0], instrument),
                 )
-                envelope_pred[i_instrument, :].tofile(csv_file_path, sep=",")
+                # save unclipped predicted envelopes
+                envelope_pred_unclipped[i_instrument, :].tofile(csv_file_path, sep=",")
                 log.info("Saved '%s'." % csv_file_path)
 
             # update progress bar
