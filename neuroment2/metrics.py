@@ -107,13 +107,10 @@ def compute_noise_and_leakage_matrices(
     # we add the last frame index to sample_start_indices because it's easier for the loop later
     sample_start_indices += [n_frames]
 
-    # init noise and leakage matrices
+    # init noise and leakage matrices and
     # labels are on axis 0, predictions on axis 1
     noise_matrix = np.zeros(shape=[n_instruments, n_instruments])
     leakage_matrix = np.zeros(shape=[n_instruments, n_instruments])
-
-    # compute max dynamic range
-    dynamic_range_in_db = level_range_in_db[1] - level_range_in_db[0]
 
     for i_labeled_instrument in range(n_instruments):
         # get current frame indices
@@ -146,9 +143,10 @@ def compute_noise_and_leakage_matrices(
 
             # value in noise matrix is the average difference between predicted and 0-envelope
             # over time
-            noise_diff_over_time_in_db = (
-                cur_pred_env - cur_label_env_noise - dynamic_range_in_db
-            )
+            noise_diff_over_time_in_db = cur_pred_env - cur_label_env_noise
+            if i_labeled_instrument != i_predicted_instrument:
+                noise_diff_over_time_in_db += level_range_in_db[0]
+
             noise_matrix[i_labeled_instrument, i_predicted_instrument] = float(
                 np.mean(noise_diff_over_time_in_db)
             )
@@ -168,7 +166,7 @@ def compute_noise_and_leakage_matrices(
 
     # set elements on main diagonal to nan
     if set_main_diagonal_to_nan:
-        noise_matrix[np.diag_indices_from(noise_matrix)] = np.nan
+        # noise_matrix[np.diag_indices_from(noise_matrix)] = np.nan
         leakage_matrix[np.diag_indices_from(leakage_matrix)] = np.nan
 
     return noise_matrix, leakage_matrix
