@@ -37,29 +37,29 @@ class FeatureGenerator:
         # generate some filter bank variables which don't need to be re-computed each time
         # in self.generate()
         self.cqt_lengths = lb.filters.constant_q_lengths(
-                sr=self.sr,
-                n_bins=self.num_bins_per_octave * self.num_octaves,
-                bins_per_octave=self.num_bins_per_octave,
-                fmin=self.f_min,
-                window=self.window,
+            sr=self.sr,
+            n_bins=self.num_bins_per_octave * self.num_octaves,
+            bins_per_octave=self.num_bins_per_octave,
+            fmin=self.f_min,
+            window=self.window,
         )
         # filter bank for standalone mel features
         self.mel_filter_bank = lb.filters.mel(
-                sr=self.sr,
-                n_fft=self.dft_size,
-                n_mels=self.num_mels,
-                fmin=self.f_min,
-                fmax=self.f_max,
-                norm=1.0,
+            sr=self.sr,
+            n_fft=self.dft_size,
+            n_mels=self.num_mels,
+            fmin=self.f_min,
+            fmax=self.f_max,
+            norm=1.0,
         )
         # filter bank for CQT+MEL features
         self.mel_filter_bank_combo_features = lb.filters.mel(
-                sr=self.sr,
-                n_fft=self.dft_size,
-                n_mels=len(self.cqt_lengths),
-                fmin=self.f_min,
-                fmax=self.f_max,
-                norm=1.0,
+            sr=self.sr,
+            n_fft=self.dft_size,
+            n_mels=len(self.cqt_lengths),
+            fmin=self.f_min,
+            fmax=self.f_max,
+            norm=1.0,
         )
 
     def generate(self, audio):
@@ -173,7 +173,12 @@ class FeatureGenerator:
         Returns:
             rms: RMS values (linear, no dB)
         """
-        rms = lb.feature.rms(audio, frame_length=self.dft_size, hop_length=self.hopsize, center=self.center)[0, :]
+        rms = lb.feature.rms(
+            audio,
+            frame_length=self.dft_size,
+            hop_length=self.hopsize,
+            center=self.center,
+        )[0, :]
 
         return rms
 
@@ -296,13 +301,17 @@ class Mixer:
                     mix.labels_mix = mix.labels_mix.astype(np.float32)
 
                     # write the generated mix to a pickle file
-                    pickle_path = os.path.join(self.pickle_path, f"{self.data_type}_mix_{self.mix_id}.pkl")
+                    pickle_path = os.path.join(
+                        self.pickle_path, f"{self.data_type}_mix_{self.mix_id}.pkl"
+                    )
                     with open(pickle_path, "wb") as f:
                         pk.dump(mix, f)
                     # log.info("Wrote '%s'." % pickle_path)
                 except Exception as e:
                     # in some really rare cases the audio can get non-finite
-                    log.warning("Could not generate mix due to exception '%s'!" % str(e))
+                    log.warning(
+                        "Could not generate mix due to exception '%s'!" % str(e)
+                    )
 
                 self.mix_id += 1
                 progress_bar.update(1)
@@ -324,7 +333,9 @@ class Mixer:
                 self.cfg["num_octaves"] * self.cfg["num_bins_per_octave"]
             )
         elif self.cfg["feature"] == "STFT":
-            statistics["num_features_per_observation"] = self.cfg["Mix"]["dft_size"] // 2 + 1
+            statistics["num_features_per_observation"] = (
+                self.cfg["Mix"]["dft_size"] // 2 + 1
+            )
         elif self.cfg["feature"] == "MEL":
             statistics["num_features_per_observation"] = self.cfg["num_mels"]
 
@@ -340,7 +351,9 @@ class Mixer:
 
         statistics["feature_generator_cfg"] = self.feature_generator.cfg
 
-        statistics_path = os.path.join(self.pickle_path, "%s_statistics.yml" % self.data_type)
+        statistics_path = os.path.join(
+            self.pickle_path, "%s_statistics.yml" % self.data_type
+        )
         with open(statistics_path, "w") as outfile:
             yaml.dump(statistics, outfile, default_flow_style=False)
         log.info("Wrote '%s'." % statistics_path)

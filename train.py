@@ -34,7 +34,9 @@ def train(cfg: DictConfig) -> None:
 
     # create model
     model = NeuromentModel(
-        num_channels=dataset_stats.get("num_channels", 1),  # small compatibility fix here
+        num_channels=dataset_stats.get(
+            "num_channels", 1
+        ),  # small compatibility fix here
         num_instruments=dataset_stats["num_instruments"],
         num_input_features=dataset_stats["num_features_per_observation"],
         num_input_frames=dataset_stats["num_frames_per_observation"],

@@ -34,7 +34,9 @@ def inference(cfg: DictConfig) -> None:
 
     # create model
     model = NeuromentModel(
-        num_channels=dataset_stats.get("num_channels", 1),  # small compatibility fix here
+        num_channels=dataset_stats.get(
+            "num_channels", 1
+        ),  # small compatibility fix here
         num_instruments=dataset_stats["num_instruments"],
         num_input_features=dataset_stats["num_features_per_observation"],
         num_input_frames=dataset_stats["num_frames_per_observation"],
@@ -49,7 +51,9 @@ def inference(cfg: DictConfig) -> None:
 
     # create predictions directory
     os.makedirs(cfg.inference.predictions_dir, exist_ok=True)
-    log.info("Saving predictions to: %s" % os.path.abspath(cfg.inference.predictions_dir))
+    log.info(
+        "Saving predictions to: %s" % os.path.abspath(cfg.inference.predictions_dir)
+    )
 
     # set model to evaluation mode
     model.eval()
@@ -57,21 +61,31 @@ def inference(cfg: DictConfig) -> None:
     # get list of audio files
     inference_file_list = []
     for ending in ["wav", "flac", "mp3", "WAV", "FLAC", "MP3"]:
-        inference_file_list.extend(glob.glob(os.path.join(cfg.inference.audio_dir, "*." + ending)))
+        inference_file_list.extend(
+            glob.glob(os.path.join(cfg.inference.audio_dir, "*." + ending))
+        )
 
     # make progbar
     prog_bar = tqdm(total=len(inference_file_list), desc="Predicting...")
 
     # compute hann window which we need to overlap predicted frames and check if it's conditioned correctly
     num_frames_per_observation = dataset_stats["num_frames_per_observation"]
-    hann_window = lb.filters.get_window("hann", num_frames_per_observation, fftbins=True)
-    overlapped_test_window = hann_window[:len(hann_window) // 2] + hann_window[len(hann_window) // 2:]
+    hann_window = lb.filters.get_window(
+        "hann", num_frames_per_observation, fftbins=True
+    )
+    overlapped_test_window = (
+        hann_window[: len(hann_window) // 2] + hann_window[len(hann_window) // 2 :]
+    )
     assert np.all(np.abs(overlapped_test_window - 1.0) < 1e-3)
 
     with torch.no_grad():
         for input_file in inference_file_list:
             # load raw audio
-            audio, _ = lb.load(input_file, sr=dataset_stats["sr"], mono=True,)
+            audio, _ = lb.load(
+                input_file,
+                sr=dataset_stats["sr"],
+                mono=True,
+            )
 
             # generate features
             features, envelope_ref = feature_gen.generate(audio)
@@ -97,10 +111,16 @@ def inference(cfg: DictConfig) -> None:
             # now predict and overlap each predicted window by its half using a hann window for perfect overlap
             # we simply skip the last 2 frames in order to avoid an out-of-index error
             # TODO zero-pad instead
-            start_indices = np.arange(0, n_frames_total, num_frames_per_observation // 2)
+            start_indices = np.arange(
+                0, n_frames_total, num_frames_per_observation // 2
+            )
             for start_index in start_indices[:-2]:
                 # predict
-                pred = model(features[:, :, :, start_index:start_index + num_frames_per_observation])
+                pred = model(
+                    features[
+                        :, :, :, start_index : start_index + num_frames_per_observation
+                    ]
+                )
 
                 # convert predicted envelope from torch Tensor to np.ndarray and remove batch dimension
                 pred = pred.cpu().numpy()[0, :, :]
@@ -109,7 +129,9 @@ def inference(cfg: DictConfig) -> None:
                 pred = np.multiply(pred, hann_window)
 
                 # add predicted and windowed envelope to collected envelope
-                envelope_pred[:, start_index:start_index + num_frames_per_observation] += pred
+                envelope_pred[
+                    :, start_index : start_index + num_frames_per_observation
+                ] += pred
 
             # limit dynamic range
             envelope_pred_unclipped = envelope_pred
@@ -125,18 +147,36 @@ def inference(cfg: DictConfig) -> None:
             plt.subplot(1, 1, 1)
 
             # imshow() automatically interpolates, so we use matshow()
-            plt.matshow(to_db(envelope_pred, min_db=cfg.level_range_in_db[0], max_db=cfg.level_range_in_db[1]),
-                        fignum=0, aspect="auto", origin="lower",
-                        vmin=cfg.level_range_in_db[0], vmax=cfg.level_range_in_db[1])
+            plt.matshow(
+                to_db(
+                    envelope_pred,
+                    min_db=cfg.level_range_in_db[0],
+                    max_db=cfg.level_range_in_db[1],
+                ),
+                fignum=0,
+                aspect="auto",
+                origin="lower",
+                vmin=cfg.level_range_in_db[0],
+                vmax=cfg.level_range_in_db[1],
+            )
 
             plt.colorbar(label="amplitude / dB")
 
-            t = np.linspace(0.0, len(audio) / float(dataset_stats["sr"]), num=n_frames_total)
+            t = np.linspace(
+                0.0, len(audio) / float(dataset_stats["sr"]), num=n_frames_total
+            )
             t_string = ["%.1f" % number for number in t]
             step_width = n_frames_total // 8
-            plt.xticks(ticks=np.arange(0, n_frames_total)[::step_width], labels=t_string[::step_width])
-            plt.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
-            plt.yticks(ticks=np.arange(0, len(cfg.class_labels)), labels=cfg.class_labels)
+            plt.xticks(
+                ticks=np.arange(0, n_frames_total)[::step_width],
+                labels=t_string[::step_width],
+            )
+            plt.tick_params(
+                axis="x", bottom=True, top=False, labelbottom=True, labeltop=False
+            )
+            plt.yticks(
+                ticks=np.arange(0, len(cfg.class_labels)), labels=cfg.class_labels
+            )
             plt.title(os.path.basename(input_file))
             plt.xlabel("time / s")
             plt.ylabel("instruments")
@@ -171,7 +211,9 @@ def inference(cfg: DictConfig) -> None:
                 )
 
                 # compute some plot variables
-                t = np.linspace(0.0, len(audio) / float(dataset_stats["sr"]), num=n_frames_total)
+                t = np.linspace(
+                    0.0, len(audio) / float(dataset_stats["sr"]), num=n_frames_total
+                )
                 t_string = ["%.1f" % number for number in t]
                 step_width = n_frames_total // 8
 
@@ -180,26 +222,58 @@ def inference(cfg: DictConfig) -> None:
 
                 # plot predicted envelopes
                 plt.subplot(2, 1, 1)
-                plt.matshow(to_db(envelope_pred, min_db=cfg.level_range_in_db[0], max_db=cfg.level_range_in_db[1]),
-                            fignum=0, aspect="auto", origin="lower",
-                            vmin=cfg.level_range_in_db[0], vmax=cfg.level_range_in_db[1])
+                plt.matshow(
+                    to_db(
+                        envelope_pred,
+                        min_db=cfg.level_range_in_db[0],
+                        max_db=cfg.level_range_in_db[1],
+                    ),
+                    fignum=0,
+                    aspect="auto",
+                    origin="lower",
+                    vmin=cfg.level_range_in_db[0],
+                    vmax=cfg.level_range_in_db[1],
+                )
                 plt.colorbar(label="amplitude / dB")
-                plt.xticks(ticks=np.arange(0, n_frames_total)[::step_width], labels=t_string[::step_width])
-                plt.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
-                plt.yticks(ticks=np.arange(0, len(cfg.class_labels)), labels=cfg.class_labels)
+                plt.xticks(
+                    ticks=np.arange(0, n_frames_total)[::step_width],
+                    labels=t_string[::step_width],
+                )
+                plt.tick_params(
+                    axis="x", bottom=True, top=False, labelbottom=True, labeltop=False
+                )
+                plt.yticks(
+                    ticks=np.arange(0, len(cfg.class_labels)), labels=cfg.class_labels
+                )
                 plt.title("%s: predicted" % os.path.basename(input_file))
                 plt.xlabel("time / s")
                 plt.ylabel("instruments")
 
                 # plot reference envelopes
                 plt.subplot(2, 1, 2)
-                plt.matshow(to_db(envelope_ref, min_db=cfg.level_range_in_db[0], max_db=cfg.level_range_in_db[1]),
-                            fignum=0, aspect="auto", origin="lower",
-                            vmin=cfg.level_range_in_db[0], vmax=cfg.level_range_in_db[1])
+                plt.matshow(
+                    to_db(
+                        envelope_ref,
+                        min_db=cfg.level_range_in_db[0],
+                        max_db=cfg.level_range_in_db[1],
+                    ),
+                    fignum=0,
+                    aspect="auto",
+                    origin="lower",
+                    vmin=cfg.level_range_in_db[0],
+                    vmax=cfg.level_range_in_db[1],
+                )
                 plt.colorbar(label="amplitude / dB")
-                plt.xticks(ticks=np.arange(0, n_frames_total)[::step_width], labels=t_string[::step_width])
-                plt.tick_params(axis="x", bottom=True, top=False, labelbottom=True, labeltop=False)
-                plt.yticks(ticks=np.arange(0, len(cfg.class_labels)), labels=cfg.class_labels)
+                plt.xticks(
+                    ticks=np.arange(0, n_frames_total)[::step_width],
+                    labels=t_string[::step_width],
+                )
+                plt.tick_params(
+                    axis="x", bottom=True, top=False, labelbottom=True, labeltop=False
+                )
+                plt.yticks(
+                    ticks=np.arange(0, len(cfg.class_labels)), labels=cfg.class_labels
+                )
                 plt.title("%s: reference" % os.path.basename(input_file))
                 plt.xlabel("time / s")
                 plt.ylabel("instruments")
@@ -210,7 +284,8 @@ def inference(cfg: DictConfig) -> None:
                 # save plot to file
                 plot_file_path = os.path.join(
                     cfg.inference.predictions_dir,
-                    os.path.splitext(os.path.basename(input_file))[0] + "_comparison.png",
+                    os.path.splitext(os.path.basename(input_file))[0]
+                    + "_comparison.png",
                 )
                 fig.savefig(plot_file_path)
                 log.info("Saved '%s'." % plot_file_path)
@@ -231,9 +306,16 @@ def inference(cfg: DictConfig) -> None:
 
                 fig_1, _ = plt.subplots(1, 1, figsize=cfg.figsize)
 
-                sns.heatmap(noise_matrix, annot=True, fmt=fmt, cmap=cmap,
-                            xticklabels=list(cfg.class_labels), yticklabels=list(cfg.class_labels),
-                            vmin=cfg.level_range_in_db[0], vmax=cfg.level_range_in_db[1])
+                sns.heatmap(
+                    noise_matrix,
+                    annot=True,
+                    fmt=fmt,
+                    cmap=cmap,
+                    xticklabels=list(cfg.class_labels),
+                    yticklabels=list(cfg.class_labels),
+                    vmin=cfg.level_range_in_db[0],
+                    vmax=cfg.level_range_in_db[1],
+                )
                 plt.xlabel("instrument detected")
                 plt.xticks(rotation=x_tick_rotation)
                 plt.ylabel("instrument played")
@@ -244,9 +326,16 @@ def inference(cfg: DictConfig) -> None:
 
                 fig_2, _ = plt.subplots(1, 1, figsize=cfg.figsize)
 
-                sns.heatmap(leakage_matrix, annot=True, fmt=fmt, cmap=cmap,
-                            xticklabels=list(cfg.class_labels), yticklabels=list(cfg.class_labels),
-                            vmin=cfg.level_range_in_db[0], vmax=cfg.level_range_in_db[1])
+                sns.heatmap(
+                    leakage_matrix,
+                    annot=True,
+                    fmt=fmt,
+                    cmap=cmap,
+                    xticklabels=list(cfg.class_labels),
+                    yticklabels=list(cfg.class_labels),
+                    vmin=cfg.level_range_in_db[0],
+                    vmax=cfg.level_range_in_db[1],
+                )
                 plt.xlabel("instrument detected")
                 plt.xticks(rotation=x_tick_rotation)
                 plt.ylabel("instrument played")
@@ -258,13 +347,15 @@ def inference(cfg: DictConfig) -> None:
                 # save plots to file
                 plot_file_path = os.path.join(
                     cfg.inference.predictions_dir,
-                    os.path.splitext(os.path.basename(input_file))[0] + "_noise-matrix.png",
+                    os.path.splitext(os.path.basename(input_file))[0]
+                    + "_noise-matrix.png",
                 )
                 fig_1.savefig(plot_file_path)
                 log.info("Saved '%s'." % plot_file_path)
                 plot_file_path = os.path.join(
                     cfg.inference.predictions_dir,
-                    os.path.splitext(os.path.basename(input_file))[0] + "_leakage-matrix.png",
+                    os.path.splitext(os.path.basename(input_file))[0]
+                    + "_leakage-matrix.png",
                 )
                 fig_2.savefig(plot_file_path)
                 log.info("Saved '%s'." % plot_file_path)
@@ -275,7 +366,8 @@ def inference(cfg: DictConfig) -> None:
             for i_instrument, instrument in enumerate(cfg.class_labels):
                 csv_file_path = os.path.join(
                     cfg.inference.predictions_dir,
-                    "%s_%s.csv" % (os.path.splitext(os.path.basename(input_file))[0], instrument),
+                    "%s_%s.csv"
+                    % (os.path.splitext(os.path.basename(input_file))[0], instrument),
                 )
                 # save unclipped predicted envelopes
                 envelope_pred_unclipped[i_instrument, :].tofile(csv_file_path, sep=",")

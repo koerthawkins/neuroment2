@@ -74,7 +74,10 @@ def compute_noise_and_leakage_matrices(
     sample_length_per_instrument: float,
     total_sample_length: float,
     set_main_diagonal_to_nan: bool = True,
-    level_range_in_db: tuple = (-100.0, 0.0,),
+    level_range_in_db: tuple = (
+        -100.0,
+        0.0,
+    ),
 ):
     """Computes the noise matrix for predicted and reference envelopes of a sequence sample.
 
@@ -124,14 +127,26 @@ def compute_noise_and_leakage_matrices(
             cur_pred_env = predicted_envelopes[i_predicted_instrument, frame_indices]
 
             # convert to db
-            cur_label_env_noise = to_db(cur_label_env_noise, min_db=level_range_in_db[0], max_db=level_range_in_db[1])
-            cur_label_env_leakage = to_db(cur_label_env_leakage, min_db=level_range_in_db[0], max_db=level_range_in_db[1])
-            cur_pred_env = to_db(cur_pred_env, min_db=level_range_in_db[0], max_db=level_range_in_db[1])
+            cur_label_env_noise = to_db(
+                cur_label_env_noise,
+                min_db=level_range_in_db[0],
+                max_db=level_range_in_db[1],
+            )
+            cur_label_env_leakage = to_db(
+                cur_label_env_leakage,
+                min_db=level_range_in_db[0],
+                max_db=level_range_in_db[1],
+            )
+            cur_pred_env = to_db(
+                cur_pred_env, min_db=level_range_in_db[0], max_db=level_range_in_db[1]
+            )
 
             # compute difference in envelopes over time in dB
             # we need to limit the dynamic range here, otherwise there can be too many outliers
             # for the results to have meaning
-            noise_diff_over_time_in_db = cur_pred_env - cur_label_env_noise - dynamic_range_in_db
+            noise_diff_over_time_in_db = (
+                cur_pred_env - cur_label_env_noise - dynamic_range_in_db
+            )
             noise_matrix[i_labeled_instrument, i_predicted_instrument] = float(
                 np.mean(noise_diff_over_time_in_db)
             )
@@ -140,13 +155,17 @@ def compute_noise_and_leakage_matrices(
             leakage_diff_over_time_in_db = cur_pred_env - cur_label_env_leakage
 
             # only keep differences where energy of prediction is above min level in db
-            leakage_diff_over_time_in_db[cur_pred_env < (level_range_in_db[0] + 0.1)] = level_range_in_db[0]
+            leakage_diff_over_time_in_db[
+                cur_pred_env < (level_range_in_db[0] + 0.1)
+            ] = level_range_in_db[0]
             if len(leakage_diff_over_time_in_db) > 0:
                 average_difference_in_db = np.mean(leakage_diff_over_time_in_db)
             else:
                 average_difference_in_db = level_range_in_db[0]
 
-            leakage_matrix[i_labeled_instrument, i_predicted_instrument] = average_difference_in_db
+            leakage_matrix[
+                i_labeled_instrument, i_predicted_instrument
+            ] = average_difference_in_db
 
     # set elements on main diagonal to nan
     if set_main_diagonal_to_nan:
@@ -166,6 +185,5 @@ def to_db(spectrum: np.ndarray, min_db: float = -100.0, max_db: float = 0.0):
 
 
 def to_linear(spectrum: np.ndarray):
-    """Converts a spectrum from dB to linear and returns it.
-    """
+    """Converts a spectrum from dB to linear and returns it."""
     return np.power(10.0, spectrum * 0.05)

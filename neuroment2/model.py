@@ -17,7 +17,7 @@ class NeuromentModel(nn.Module):
         use_batch_norm: bool = True,
         dropout_rate: float = 0.0,
     ):
-        """ Creates the NeuromentModel.
+        """Creates the NeuromentModel.
 
         Args:
             num_channels: number of channels in features.
@@ -39,26 +39,62 @@ class NeuromentModel(nn.Module):
         pool_size_2 = 2
         pool_size_3 = 4
 
-        self.conv_1 = ConvBlock(num_channels, 16, (3, 3), stride=(1, 1), padding=(3 // 2, 3 // 2),
-                                use_batch_norm=self.use_batch_norm)
-        self.conv_2 = ConvBlock(16, 16, (3, 3), stride=(1, 1), padding=(3 // 2, 3 // 2),
-                                use_batch_norm=self.use_batch_norm)
+        self.conv_1 = ConvBlock(
+            num_channels,
+            16,
+            (3, 3),
+            stride=(1, 1),
+            padding=(3 // 2, 3 // 2),
+            use_batch_norm=self.use_batch_norm,
+        )
+        self.conv_2 = ConvBlock(
+            16,
+            16,
+            (3, 3),
+            stride=(1, 1),
+            padding=(3 // 2, 3 // 2),
+            use_batch_norm=self.use_batch_norm,
+        )
 
         self.pool_1 = nn.MaxPool2d(kernel_size=(pool_size_1, 1))
         self.dropout_1 = nn.Dropout2d(p=self.dropout_rate)
 
-        self.conv_3 = ConvBlock(16, 32, (5, 5), stride=(1, 1), padding=(5 // 2, 5 // 2),
-                                use_batch_norm=self.use_batch_norm)
-        self.conv_4 = ConvBlock(32, 32, (5, 5), stride=(1, 1), padding=(5 // 2, 5 // 2),
-                                use_batch_norm=self.use_batch_norm)
+        self.conv_3 = ConvBlock(
+            16,
+            32,
+            (5, 5),
+            stride=(1, 1),
+            padding=(5 // 2, 5 // 2),
+            use_batch_norm=self.use_batch_norm,
+        )
+        self.conv_4 = ConvBlock(
+            32,
+            32,
+            (5, 5),
+            stride=(1, 1),
+            padding=(5 // 2, 5 // 2),
+            use_batch_norm=self.use_batch_norm,
+        )
 
         self.pool_2 = nn.MaxPool2d(kernel_size=(pool_size_2, 1))
         self.dropout_2 = nn.Dropout2d(p=self.dropout_rate)
 
-        self.conv_5 = ConvBlock(32, 64, (7, 7), stride=(1, 1), padding=(7 // 2, 7 // 2),
-                                use_batch_norm=self.use_batch_norm)
-        self.conv_6 = ConvBlock(64, 64, (7, 7), stride=(1, 1), padding=(7 // 2, 7 // 2),
-                                use_batch_norm=self.use_batch_norm)
+        self.conv_5 = ConvBlock(
+            32,
+            64,
+            (7, 7),
+            stride=(1, 1),
+            padding=(7 // 2, 7 // 2),
+            use_batch_norm=self.use_batch_norm,
+        )
+        self.conv_6 = ConvBlock(
+            64,
+            64,
+            (7, 7),
+            stride=(1, 1),
+            padding=(7 // 2, 7 // 2),
+            use_batch_norm=self.use_batch_norm,
+        )
 
         self.pool_3 = nn.MaxPool2d(kernel_size=(pool_size_3, 1))
 
@@ -67,9 +103,17 @@ class NeuromentModel(nn.Module):
         self.out = nn.Sequential(
             # we must first divide num_input_features because this size is divided first in the network
             # num_input_frames always stays the same until the flatten layer
-            nn.Linear(in_features=int(64 * (self.num_input_features // (pool_size_1 * pool_size_2 * pool_size_3))
-                                      * self.num_input_frames),
-                      out_features=int(self.num_instruments * self.num_input_frames),),
+            nn.Linear(
+                in_features=int(
+                    64
+                    * (
+                        self.num_input_features
+                        // (pool_size_1 * pool_size_2 * pool_size_3)
+                    )
+                    * self.num_input_frames
+                ),
+                out_features=int(self.num_instruments * self.num_input_frames),
+            ),
             Reshape((-1, self.num_instruments, self.num_input_frames)),
             nn.Sigmoid(),
         )
@@ -193,10 +237,15 @@ def test(cfg: DictConfig) -> None:
     input_tensor = torch.Tensor(
         np.random.normal(size=[batch_size, 1, num_input_features, num_input_frames])
     )
-    log.info("Input shape: %s [batch_size, n_channels, n_features, n_frames]" % str(input_tensor.shape))
+    log.info(
+        "Input shape: %s [batch_size, n_channels, n_features, n_frames]"
+        % str(input_tensor.shape)
+    )
 
     output_tensor = model(input_tensor)
-    log.info("Output shape: %s [batch_size, n_classes, n_frames]" % str(output_tensor.shape))
+    log.info(
+        "Output shape: %s [batch_size, n_classes, n_frames]" % str(output_tensor.shape)
+    )
 
 
 if __name__ == "__main__":

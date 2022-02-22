@@ -34,11 +34,15 @@ class Neuroment2Dataset(Dataset):
         if self.data_type not in ["training", "test", "validation"]:
             raise RuntimeError("Data type '%s' is invalid!" % self.data_type)
 
-        self.pickle_files = glob.glob(os.path.join(self.dataset_dir, "*%s*.pkl" % self.data_type), recursive=False)
+        self.pickle_files = glob.glob(
+            os.path.join(self.dataset_dir, "*%s*.pkl" % self.data_type), recursive=False
+        )
 
         if len(self.pickle_files) == 0:
-            raise RuntimeError("Did not find any pickle files with data type '%s' in '%s'!"
-                               % (self.data_type, self.dataset_dir))
+            raise RuntimeError(
+                "Did not find any pickle files with data type '%s' in '%s'!"
+                % (self.data_type, self.dataset_dir)
+            )
 
     def __len__(self):
         return len(self.pickle_files)
@@ -61,8 +65,7 @@ class Neuroment2Dataset(Dataset):
 
 
 def standardize_features(features: np.ndarray):
-    """ Standardizes features to 0 mean and 1 var accross time dimension.
-    """
+    """Standardizes features to 0 mean and 1 var accross time dimension."""
     features_scaled = np.zeros(features.shape)
 
     for channel in range(features.shape[0]):
@@ -71,7 +74,8 @@ def standardize_features(features: np.ndarray):
         std = np.std(features[channel, :, :], axis=-1)
 
         # scale features
-        features_scaled[channel, :, :] = (features[channel, :, :] - mean[:, np.newaxis]) / \
-                                            (std[:, np.newaxis] + 1e-12)
+        features_scaled[channel, :, :] = (
+            features[channel, :, :] - mean[:, np.newaxis]
+        ) / (std[:, np.newaxis] + 1e-12)
 
     return features_scaled
