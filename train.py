@@ -193,6 +193,10 @@ def train(cfg: DictConfig) -> None:
             # predict
             y_pred = model(x)
 
+            # de-comment these lines to log model graph to train_writer once
+            # if epoch == 0 and step == 1:
+            #     train_writer.add_graph(model, input_to_model=x, verbose=True)
+
             # compute losses
             loss_1 = loss_fn_1(y_pred, y_ref)
             loss_2 = loss_fn_2(y_pred, y_ref)

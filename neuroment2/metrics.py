@@ -146,6 +146,15 @@ def compute_noise_and_leakage_matrices(
             noise_diff_over_time_in_db = cur_pred_env - cur_label_env_noise
             if i_labeled_instrument != i_predicted_instrument:
                 noise_diff_over_time_in_db += level_range_in_db[0]
+            else:
+                # when predicted instrument matches label instrument we must flip the range
+                # s.t. the colour code (light -> good, dark -> bad) is equal for values on and off
+                # the main diagonal
+                noise_diff_over_time_in_db = (
+                    level_range_in_db[0]
+                    - noise_diff_over_time_in_db
+                    - level_range_in_db[1]
+                )
 
             noise_matrix[i_labeled_instrument, i_predicted_instrument] = float(
                 np.mean(noise_diff_over_time_in_db)
@@ -160,9 +169,9 @@ def compute_noise_and_leakage_matrices(
             ] = level_range_in_db[0]
 
             # average leakage difference over time to get leakage matrix value
-            leakage_matrix[
-                i_labeled_instrument, i_predicted_instrument
-            ] = np.mean(leakage_diff_over_time_in_db)
+            leakage_matrix[i_labeled_instrument, i_predicted_instrument] = np.mean(
+                leakage_diff_over_time_in_db
+            )
 
     # set elements on main diagonal to nan
     if set_main_diagonal_to_nan:
