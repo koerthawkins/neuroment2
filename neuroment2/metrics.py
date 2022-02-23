@@ -73,29 +73,47 @@ def compute_noise_and_leakage_matrices(
     label_envelopes: np.ndarray,
     sample_length_per_instrument: float,
     total_sample_length: float,
-    set_main_diagonal_to_nan: bool = True,
     level_range_in_db: tuple = (
         -100.0,
         0.0,
     ),
 ):
-    """Computes the noise matrix for predicted and reference envelopes of a sequence sample.
+    """Computes the noise and leakage matrices for predicted and reference
+       envelopes of a sequence sample.
 
-        Noise is termed as predictions where there should be silence (in labels).
+        For NOISE we compare each the predicted envelope with the label envelope. The label
+        envelope can either be from the single instrument playing, or 0 (instrument doesn't play).
+        For LEAKAGE we check how much from the instrument playing leaks into the instruments
+        currently not playing.
 
         We need to limit the dynamic range here, otherwise there can be too many outliers
         for the results to have meaning.
 
     Args:
-        cfg:
-        predicted_envelopes:
-        label_envelopes:
-        sample_length:
+        predicted_envelopes : np.ndarray
+            Predicted envelopes of shape [n_instruments, n_time_frames].
+            Expected to be clipped to level_range_in_db.
+        label_envelopes: : np.ndarray
+            Label envelopes of shape [n_instruments, n_time_frames]
+            Expected to be clipped to level_range_in_db.
+        sample_length_per_instrument : float
+            How long each instrument is played in the analyzed sample in seconds.
+            We assume that all instruments are played equally long!
+        total_sample_length : float
+            The total length of the sample in seconds.
+        level_range_in_db : tuple/list
+            The level range in dB we want to limit the noise and leakage matrices too.
+            The 1st element is the min value in dB, the 2nd element the max value in dB.
 
     Returns:
-
+        noise_matrix : np.ndarray
+            Noise matrix of shape [n_instruments, n_instruments].
+            Labels are on axis 0 (rows), predictions are on axis 1 (columns).
+        leakage_matrix : np.ndarray
+            Leakage matrix of shape [n_instruments, n_instruments].
+            Labels are on axis 0 (rows), predictions are on axis 1 (columns).
     """
-    # compute start indices of instruments in sequences
+    # determine the indices in envelope matrices where instruments start playing
     n_instruments, n_frames = predicted_envelopes.shape
     sample_start_indices = (
         np.arange(0, n_instruments)
@@ -107,13 +125,13 @@ def compute_noise_and_leakage_matrices(
     # we add the last frame index to sample_start_indices because it's easier for the loop later
     sample_start_indices += [n_frames]
 
-    # init noise and leakage matrices and
+    # init noise and leakage matrices
     # labels are on axis 0, predictions on axis 1
     noise_matrix = np.zeros(shape=[n_instruments, n_instruments])
     leakage_matrix = np.zeros(shape=[n_instruments, n_instruments])
 
     for i_labeled_instrument in range(n_instruments):
-        # get current frame indices
+        # get frame indices of current instrument
         frame_indices = np.arange(
             sample_start_indices[i_labeled_instrument],
             sample_start_indices[i_labeled_instrument + 1],
@@ -121,7 +139,6 @@ def compute_noise_and_leakage_matrices(
 
         for i_predicted_instrument in range(n_instruments):
             # get labeled and predicted envelope of current time segment
-            # for noise we compare each ...
             cur_label_env_noise = label_envelopes[i_predicted_instrument, frame_indices]
             cur_label_env_leakage = label_envelopes[i_labeled_instrument, frame_indices]
             cur_pred_env = predicted_envelopes[i_predicted_instrument, frame_indices]
@@ -141,14 +158,17 @@ def compute_noise_and_leakage_matrices(
                 cur_pred_env, min_db=level_range_in_db[0], max_db=level_range_in_db[1]
             )
 
-            # value in noise matrix is the average difference between predicted and 0-envelope
-            # over time
+            # compute the value in the noise matrix by averaging the difference
+            # between predicted and labelled envelope over time
             noise_diff_over_time_in_db = cur_pred_env - cur_label_env_noise
+
             if i_labeled_instrument != i_predicted_instrument:
+                # we have an element off the main diagonal
+                # we shift the range of the computed difference into level_range_in_db
                 noise_diff_over_time_in_db += level_range_in_db[0]
             else:
-                # when predicted instrument matches label instrument we must flip the range
-                # s.t. the colour code (light -> good, dark -> bad) is equal for values on and off
+                # when predicted instrument matches label instrument we must FLIP the value range
+                # this way the colour code (light -> good, dark -> bad) is equal for values on and off
                 # the main diagonal
                 noise_diff_over_time_in_db = (
                     level_range_in_db[0]
@@ -156,27 +176,27 @@ def compute_noise_and_leakage_matrices(
                     - level_range_in_db[1]
                 )
 
+            # add noise value to noise matrix
             noise_matrix[i_labeled_instrument, i_predicted_instrument] = float(
                 np.mean(noise_diff_over_time_in_db)
             )
 
-            # leakage only works for frames which have an energy above the min level in db
+            # compute leakage
             leakage_diff_over_time_in_db = cur_pred_env - cur_label_env_leakage
 
-            # if energy of prediction is not above min level in db we have no leakage
+            # leakage only works for frames which have an energy above the min level in db
+            # so if energy of prediction is not above min level in db we have no leakage
             leakage_diff_over_time_in_db[
                 cur_pred_env < (level_range_in_db[0] + 0.1)
             ] = level_range_in_db[0]
 
-            # average leakage difference over time to get leakage matrix value
+            # average the leakage difference over time to get leakage matrix value
             leakage_matrix[i_labeled_instrument, i_predicted_instrument] = np.mean(
                 leakage_diff_over_time_in_db
             )
 
-    # set elements on main diagonal to nan
-    if set_main_diagonal_to_nan:
-        # noise_matrix[np.diag_indices_from(noise_matrix)] = np.nan
-        leakage_matrix[np.diag_indices_from(leakage_matrix)] = np.nan
+    # main diagonal elements of leakage don't make sense, so we set them to nan
+    leakage_matrix[np.diag_indices_from(leakage_matrix)] = np.nan
 
     return noise_matrix, leakage_matrix
 

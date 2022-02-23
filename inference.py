@@ -317,9 +317,9 @@ def inference(cfg: DictConfig) -> None:
                     vmax=cfg.level_range_in_db[1],
                     cbar_kws={'label': 'noise / dB'},
                 )
-                plt.xlabel("instrument detected")
+                plt.xlabel("instrument labelled")
                 plt.xticks(rotation=x_tick_rotation)
-                plt.ylabel("instrument played")
+                plt.ylabel("instrument detected")
                 plt.title("%s: noise matrix" % os.path.basename(input_file))
 
                 plt.tight_layout()
@@ -338,9 +338,9 @@ def inference(cfg: DictConfig) -> None:
                     vmax=cfg.level_range_in_db[1],
                     cbar_kws={'label': 'leakage / dB'},
                 )
-                plt.xlabel("instrument detected")
+                plt.xlabel("instrument labelled")
                 plt.xticks(rotation=x_tick_rotation)
-                plt.ylabel("instrument played")
+                plt.ylabel("instrument detected")
                 plt.title("%s: leakage matrix" % os.path.basename(input_file))
 
                 plt.tight_layout()
