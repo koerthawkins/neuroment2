@@ -17,6 +17,7 @@ data/*
 !data/.gitkeep
 !data/test
 !data/test/*.flac
+!data/test/*.mp3
 
 ## All picture files
 *.png
