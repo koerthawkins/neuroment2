@@ -47,7 +47,8 @@ def inference(cfg: DictConfig) -> None:
     model = model.to(device)
 
     # create feature generator
-    feature_gen = FeatureGenerator(dataset_stats["feature_generator_cfg"])
+    feature_generator_cfg = dataset_stats["feature_generator_cfg"]
+    feature_gen = FeatureGenerator(feature_generator_cfg)
 
     # create predictions directory
     os.makedirs(cfg.inference.predictions_dir, exist_ok=True)
@@ -192,18 +193,45 @@ def inference(cfg: DictConfig) -> None:
             fig.savefig(plot_file_path)
             log.info("Saved '%s'." % plot_file_path)
 
-            if "sequence" in input_file.lower():
-                # compute reference RMS envelopes for noise and leakage matrices
-                envelope_ref = compute_reference_envelopes(
-                    cfg,
-                    audio,
-                    dataset_stats["feature_generator_cfg"],
-                    n_frames_total,
-                    sample_length_per_instrument=5.0,
-                    total_sample_length=len(audio) / float(dataset_stats["sr"]),
-                )
+            if "sequence" in input_file.lower() or "zelda_all" in input_file.lower():
+                if "sequence" in input_file.lower():
+                    # compute reference RMS envelopes for noise and leakage matrices
+                    envelope_ref = compute_reference_envelopes(
+                        cfg,
+                        audio,
+                        dataset_stats["feature_generator_cfg"],
+                        n_frames_total,
+                        sample_length_per_instrument=5.0,
+                        total_sample_length=len(audio) / float(dataset_stats["sr"]),
+                    )
+                else:
+                    envelope_ref = np.zeros(shape=envelope_pred.shape)
+
+                    clarinet_rms = lb.feature.rms(
+                        lb.load(path="data/test/zelda_clarinet.mp3", sr=dataset_stats["sr"])[0],
+                        frame_length=feature_generator_cfg["Mix"]["dft_size"],
+                        hop_length=feature_generator_cfg["Mix"]["hopsize"],
+                        center=feature_generator_cfg["center"],
+                    )[0, :]
+                    flute_rms = lb.feature.rms(
+                        lb.load(path="data/test/zelda_flute.mp3", sr=dataset_stats["sr"])[0],
+                        frame_length=feature_generator_cfg["Mix"]["dft_size"],
+                        hop_length=feature_generator_cfg["Mix"]["hopsize"],
+                        center=feature_generator_cfg["center"],
+                    )[0, :]
+                    piano_rms = lb.feature.rms(
+                        lb.load(path="data/test/zelda_piano.mp3", sr=dataset_stats["sr"])[0],
+                        frame_length=feature_generator_cfg["Mix"]["dft_size"],
+                        hop_length=feature_generator_cfg["Mix"]["hopsize"],
+                        center=feature_generator_cfg["center"],
+                    )[0, :]
+
+                    envelope_ref[0, :] = clarinet_rms
+                    envelope_ref[3, :] = flute_rms
+                    envelope_ref[4, :] = piano_rms
 
                 # also limit dynamic range of reference envelopes
+                envelope_ref_unclipped = envelope_ref
                 envelope_ref = np.clip(
                     envelope_ref,
                     a_min=to_linear(cfg.level_range_in_db[0]),
@@ -290,90 +318,136 @@ def inference(cfg: DictConfig) -> None:
                 fig.savefig(plot_file_path)
                 log.info("Saved '%s'." % plot_file_path)
 
-                # compute noise and leakage matrix
-                noise_matrix, leakage_matrix = compute_noise_and_leakage_matrices(
-                    envelope_pred,
-                    envelope_ref,
-                    sample_length_per_instrument=5.0,
-                    total_sample_length=len(audio) / float(dataset_stats["sr"]),
-                    level_range_in_db=cfg.level_range_in_db,
-                )
+                if "sequence" in input_file.lower():
+                    # compute noise and leakage matrix
+                    noise_matrix, leakage_matrix = compute_noise_and_leakage_matrices(
+                        envelope_pred,
+                        envelope_ref,
+                        sample_length_per_instrument=5.0,
+                        total_sample_length=len(audio) / float(dataset_stats["sr"]),
+                        level_range_in_db=cfg.level_range_in_db,
+                    )
 
-                # plot matrices
-                fmt = ".1f"
-                cmap = "YlGnBu"
-                x_tick_rotation = 45
+                    # plot matrices
+                    fmt = ".1f"
+                    cmap = "YlGnBu"
+                    x_tick_rotation = 45
 
-                fig_1, _ = plt.subplots(1, 1, figsize=cfg.figsize)
+                    fig_1, _ = plt.subplots(1, 1, figsize=cfg.figsize)
 
-                sns.heatmap(
-                    noise_matrix,
-                    annot=True,
-                    fmt=fmt,
-                    cmap=cmap,
-                    xticklabels=list(cfg.class_labels),
-                    yticklabels=list(cfg.class_labels),
-                    vmin=cfg.level_range_in_db[0],
-                    vmax=cfg.level_range_in_db[1],
-                    cbar_kws={'label': 'noise / dB'},
-                )
-                plt.xlabel("instrument labelled")
-                plt.xticks(rotation=x_tick_rotation)
-                plt.ylabel("instrument detected")
-                plt.title("%s: noise matrix" % os.path.basename(input_file))
+                    sns.heatmap(
+                        noise_matrix,
+                        annot=True,
+                        fmt=fmt,
+                        cmap=cmap,
+                        xticklabels=list(cfg.class_labels),
+                        yticklabels=list(cfg.class_labels),
+                        vmin=cfg.level_range_in_db[0],
+                        vmax=cfg.level_range_in_db[1],
+                        cbar_kws={'label': 'noise / dB'},
+                    )
+                    plt.xlabel("instrument labelled")
+                    plt.xticks(rotation=x_tick_rotation)
+                    plt.ylabel("instrument detected")
+                    plt.title("%s: noise matrix" % os.path.basename(input_file))
 
-                plt.tight_layout()
-                plt.show()
+                    plt.tight_layout()
+                    plt.show()
 
-                fig_2, _ = plt.subplots(1, 1, figsize=cfg.figsize)
+                    fig_2, _ = plt.subplots(1, 1, figsize=cfg.figsize)
 
-                sns.heatmap(
-                    leakage_matrix,
-                    annot=True,
-                    fmt=fmt,
-                    cmap=cmap,
-                    xticklabels=list(cfg.class_labels),
-                    yticklabels=list(cfg.class_labels),
-                    vmin=cfg.level_range_in_db[0],
-                    vmax=cfg.level_range_in_db[1],
-                    cbar_kws={'label': 'leakage / dB'},
-                )
-                plt.xlabel("instrument labelled")
-                plt.xticks(rotation=x_tick_rotation)
-                plt.ylabel("instrument detected")
-                plt.title("%s: leakage matrix" % os.path.basename(input_file))
+                    sns.heatmap(
+                        leakage_matrix,
+                        annot=True,
+                        fmt=fmt,
+                        cmap=cmap,
+                        xticklabels=list(cfg.class_labels),
+                        yticklabels=list(cfg.class_labels),
+                        vmin=cfg.level_range_in_db[0],
+                        vmax=cfg.level_range_in_db[1],
+                        cbar_kws={'label': 'leakage / dB'},
+                    )
+                    plt.xlabel("instrument labelled")
+                    plt.xticks(rotation=x_tick_rotation)
+                    plt.ylabel("instrument detected")
+                    plt.title("%s: leakage matrix" % os.path.basename(input_file))
 
-                plt.tight_layout()
-                plt.show()
+                    plt.tight_layout()
+                    plt.show()
 
-                # save plots to file
-                plot_file_path = os.path.join(
-                    cfg.inference.predictions_dir,
-                    os.path.splitext(os.path.basename(input_file))[0]
-                    + "_noise-matrix.png",
-                )
-                fig_1.savefig(plot_file_path)
-                log.info("Saved '%s'." % plot_file_path)
-                plot_file_path = os.path.join(
-                    cfg.inference.predictions_dir,
-                    os.path.splitext(os.path.basename(input_file))[0]
-                    + "_leakage-matrix.png",
-                )
-                fig_2.savefig(plot_file_path)
-                log.info("Saved '%s'." % plot_file_path)
+                    # save plots to file
+                    plot_file_path = os.path.join(
+                        cfg.inference.predictions_dir,
+                        os.path.splitext(os.path.basename(input_file))[0]
+                        + "_noise-matrix.png",
+                    )
+                    fig_1.savefig(plot_file_path)
+                    log.info("Saved '%s'." % plot_file_path)
+                    plot_file_path = os.path.join(
+                        cfg.inference.predictions_dir,
+                        os.path.splitext(os.path.basename(input_file))[0]
+                        + "_leakage-matrix.png",
+                    )
+                    fig_2.savefig(plot_file_path)
+                    log.info("Saved '%s'." % plot_file_path)
 
-                log.info("Computed noise and leakage matrices.")
+                    log.info("Computed noise and leakage matrices.")
+
+            # if "zelda_all" in input_file.lower():
+            #     envelope_ref = np.zeros(shape=envelope_pred.shape)
+            #
+            #     clarinet_rms = lb.feature.rms(
+            #         lb.load(path="data/test/zelda_clarinet.mp3", sr=dataset_stats["sr"]),
+            #         frame_length=feature_generator_cfg["Mix"]["dft_size"],
+            #         hop_length=feature_generator_cfg["Mix"]["hopsize"],
+            #         center=feature_generator_cfg["center"],
+            #     )[0, :]
+            #     flute_rms = lb.feature.rms(
+            #         lb.load(path="data/test/zelda_flute.mp3", sr=dataset_stats["sr"]),
+            #         frame_length=feature_generator_cfg["Mix"]["dft_size"],
+            #         hop_length=feature_generator_cfg["Mix"]["hopsize"],
+            #         center=feature_generator_cfg["center"],
+            #     )[0, :]
+            #     piano_rms = lb.feature.rms(
+            #         lb.load(path="data/test/zelda_piano.mp3", sr=dataset_stats["sr"]),
+            #         frame_length=feature_generator_cfg["Mix"]["dft_size"],
+            #         hop_length=feature_generator_cfg["Mix"]["hopsize"],
+            #         center=feature_generator_cfg["center"],
+            #     )[0, :]
+            #
+            #     envelope_ref[0, :] = clarinet_rms
+            #     envelope_ref[3, :] = flute_rms
+            #     envelope_ref[4, :] = piano_rms
+
+                # also limit dynamic range of reference envelopes
+                # envelope_ref_unclipped = envelope_ref
+                # envelope_ref = np.clip(
+                #     envelope_ref,
+                #     a_min=to_linear(cfg.level_range_in_db[0]),
+                #     a_max=to_linear(cfg.level_range_in_db[1]),
+                # )
+
 
             # save predictions to CSV too
             for i_instrument, instrument in enumerate(cfg.class_labels):
-                csv_file_path = os.path.join(
+                # save unclipped predicted envelopes
+                csv_file_path_pred = os.path.join(
                     cfg.inference.predictions_dir,
-                    "%s_%s.csv"
+                    "%s_%s_predicted.csv"
                     % (os.path.splitext(os.path.basename(input_file))[0], instrument),
                 )
-                # save unclipped predicted envelopes
-                envelope_pred_unclipped[i_instrument, :].tofile(csv_file_path, sep=",")
-                log.info("Saved '%s'." % csv_file_path)
+                envelope_pred_unclipped[i_instrument, :].tofile(csv_file_path_pred, sep=",")
+
+                # save unclipped reference envelopes
+                if "sequence" in input_file.lower():
+                    csv_file_path_ref = os.path.join(
+                        cfg.inference.predictions_dir,
+                        "%s_%s_referencee.csv"
+                        % (os.path.splitext(os.path.basename(input_file))[0], instrument),
+                    )
+                    envelope_ref_unclipped[i_instrument, :].tofile(csv_file_path_ref, sep=",")
+
+                log.info("Saved '%s' and '%s'." % (csv_file_path_pred, csv_file_path_ref))
 
             # update progress bar
             prog_bar.update(1)
