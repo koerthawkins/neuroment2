@@ -10,6 +10,8 @@ This project implements the data generation, network training and inference for 
 
 The CNN comprises a simple, linear model structure. For data generation you may use different feature computation algorithms, like mel-frequency spectra or CQTs. You can predict the envelopes of different instruments in your own audio files during inference.
 
+The documentation of this project is in [docs/Neuroment2_Haeusler-Maier.pdf](docs/Neuroment2_Haeusler-Maier.pdf).
+
 ## Structure
 
 - `cluster/`: Configuration files and scripts for slurm simulation clusters
