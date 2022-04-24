@@ -25,36 +25,50 @@ level_range_in_db: [-60.0, 0.0]
 
 Mixer:
   # absolute path to directory with raw audio files from which features are computed
-  raw_data_path: "Medley-solos-DB_small"
+  raw_data_path: "data/medley-solos-db-small/"
   # path where we write generated features and labels to
   pickle_path: "data/pickle/"
   # the type of data we want to generate. options: "training", "validation", "test"
   data_type: "test"
-  # number of times we use each raw data file once
+  # number of times we use each raw data file per mixing epoch
   num_epochs:
     training: 1
     validation: 1
     test: 1
+  # the number of instruments will be uniformly sampled from this range
   num_instruments_mix: [1, 4]
+  # total number of instruments in the dataset
   num_instruments: 8
+  # the length of the observation window in samples times the number of observation windows per file
+  # (it's best not to change that)
   num_samples_per_file: 131072
+  # the feature computation algorithm with which features will be computed
   # options: CQT, STFT, MEL, CQT+MEL
   feature: "MEL"
-  # options: "SPECTRUM" (use spectral data to compute envelope), "RMS" (RMS computed in time domain)
+  # the algorithm used to compute the envelope/activations
+  # options: "RMS" (RMS computed in time domain), "SPECTRUM" (use spectral data to compute envelope)
   envelope_type: "RMS"
+  # window function used for STFT
+  window: "hann"
+  # whether to center STFT frames or not
+  # CQT always centers so it's advisable to set that to true and keep it at True
+  center: True
+  # mel-frequency settings - number of mel frequencies and min/max mel frequencies (only applies if features=="MEL")
   num_mels: 128
   f_min: 27.5
   f_max: 20000
-  window: "hann"
-  # CQT always centers so it's advisable to set that to and keep it at True
-  center: True
+  # CQT settings - number of bins per octave and number of octaves
   num_bins_per_octave: 24
   num_octaves: 8
   Mix:
+    # STFT settings
     dft_size: 2048
     hopsize: 1024
+    # number of STFT (feature) frames in an observation window
     num_frames: 14
+    # sampling rate in Hz
     sr: 44100
+    # whether to save WAV data to pickle files after feature computation
     save_wav_data: True
 
 train:
@@ -103,21 +117,22 @@ train:
 
 inference:
   # directory with audio files to run inference on
-  # predictions will also be written there!
-  audio_dir: ""
+  audio_dir: "data/test/"
   # full path to model we want to use for prediction
-  model_path: ""
+  model_path: "models/neuroment2_cqt_00125782.model"
   # path where predictions will be saved too
   predictions_dir: "predictions/"
   gpu_index: 0
 
 # parameters for AdamW optimizer
+# (see the pytorch documentation for a description of each parameter)
 optimizer:
   learning_rate: 0.001
   beta: [0.9, 0.999]
   weight_decay: 0.001
 
 # parameters for ReduceLROnPlateau learning rate scheduler
+# (see the pytorch documentation for a description of each parameter)
 scheduler:
   mode: "min"
   factor: 0.2
@@ -127,16 +142,17 @@ scheduler:
 
 # dataset parsing configuration (for parse_dataset.py)
 parsing:
-  # the input dataset directory (usually the dataset in there should be unbalanced)
+  # the input dataset directory
+  # this should be the extracted version of the Medley-Solos DB v1.2 dataset
   input_dataset_dir: "/media/WindowsPartition/Users/maier/Desktop/datasets/MedleyDB/full_dataset_v1p2"
   # the dataset types which we want to parse
   dataset_types: ["training", "validation", "test"]
   # we oversample the underrepresented classes by this factor
   # overrepresented classes will be undersampled s.t. in the end each class has the same number of files
-  max_oversampling_factor: 3.0
+  max_oversampling_factor: 2.0
   # directory where the parsed dataset will be written to
   # we automatically append the max_oversampling_factor to the output_dataset_dir in code
-  output_dataset_dir: "/media/WindowsPartition/Users/maier/Desktop/datasets/MedleyDB/parsed_orig_dataset_oversampling-factor"
+  output_dataset_dir: "data/balanced-dataset/"
   # directory where plots with file distributions will be written to
   output_plot_dir: "plots/"
 

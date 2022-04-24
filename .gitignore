@@ -18,6 +18,8 @@ data/*
 !data/test
 !data/test/*.flac
 !data/test/*.mp3
+!data/medley-solos-db-small
+!data/medley-solos-db-small/*.flac
 
 ## All picture files
 *.png
