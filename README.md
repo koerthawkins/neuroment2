@@ -4,6 +4,12 @@ Instrument detection using convolutional neural networks.
 
 ![](docs/Sequence_1_comparison.png)
 
+## Description
+
+This project implements the data generation, network training and inference for instrument detection using a CNN.
+
+The CNN comprises a simple, linear model structure. For data generation you may use different feature computation algorithms, like mel-frequency spectra or CQTs. You can predict the envelopes of different instruments in your own audio files during inference.
+
 ## Structure
 
 - `cluster/`: Configuration files and scripts for slurm simulation clusters
@@ -33,10 +39,6 @@ For our experiments we used the [Medley-solos-DB](https://zenodo.org/record/1344
 5. tenor saxophone
 6. trumpet
 7. violin
-
-## Recommended settings
-
-- `use_batch_norm`: If we use BatchNorm after Conv2D layers the network predicts silence a bit better, but it also kind of "generalizes" the amplitude. This means, that most frames are the same amplitude.
 
 ## How to run (with examples)
 
