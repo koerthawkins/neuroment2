@@ -42,6 +42,10 @@ def parse(cfg: DictConfig) -> None:
             )
             num_samples_per_class[instrument] = len(file_list)
 
+        if np.sum(num_samples_per_class) < 0.1:
+            log.warning(f"No samples detected in {cfg.parsing.input_dataset_dir} for dataset type '{dataset_type}'.")
+            continue
+
         # define the maximum number of samples per instrument that will be taken
         # don't take 0 into account
         n_samples_per_instrument_to_take = int(
