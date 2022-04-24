@@ -250,9 +250,9 @@ def train(cfg: DictConfig) -> None:
             if (cfg.train.model_checkpoint_interval != -1) and (
                 step % cfg.train.model_checkpoint_interval == 0
             ):
-                checkpoint_path = "%s/neuroment2_%.8d.model" % (
+                checkpoint_path = os.path.join(
                     cfg.train.model_save_dir,
-                    step,
+                    "neuroment2_%.8d.model" % step,
                 )
                 _save_model(
                     checkpoint_path,
@@ -283,7 +283,10 @@ def train(cfg: DictConfig) -> None:
         prog_bar.close()
 
     # save final model state
-    checkpoint_path = "%s/neuroment2_%.8d.model" % (cfg.train.model_save_dir, step)
+    checkpoint_path = os.path.join(
+        cfg.train.model_save_dir,
+        "neuroment2_%.8d.model" % step,
+    )
     _save_model(
         checkpoint_path, model, optimizer, scheduler, step, epoch, dataset_stats, cfg
     )

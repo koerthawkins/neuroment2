@@ -2,6 +2,8 @@
 
 Instrument detection using convolutional neural networks.
 
+![](docs/Sequence_1_comparison.png)
+
 ## Structure
 
 - `cluster/`: Configuration files and scripts for slurm simulation clusters
@@ -38,6 +40,8 @@ For our experiments we used the [Medley-solos-DB](https://zenodo.org/record/1344
 
 ## How to run (with examples)
 
+Note that all 4 scripts use the [hydra](https://hydra.cc) framework for configuration. If you want to know how to easily use this framework to configure your application look [here](https://hydra.cc/docs/tutorials/basic/your_first_app/simple_cli/). All program output will be written to `outputs/` or to `multirun/` (to the latter if you supply the `-m` flag).
+
 ### Environment setup
 
 We use the [anaconda](https://docs.anaconda.com/anaconda-repository/user-guide/tasks/pkgs/use-pkg-managers/) package manager.
@@ -47,52 +51,36 @@ We use the [anaconda](https://docs.anaconda.com/anaconda-repository/user-guide/t
 3. Activate the environment via `conda activate neuroment2-cpu` (or `neuroment2-gpu`)
 4. Run a script (see below)
 
+### Parse a dataset
+
+Parsing the original Medley-Solos DB dataset is needed in order to balance it.
+
+We provide a small, balanced dataset in `data/medley-solos-db-small/`. Unless you plan to train your own model **for real** we advise to use this small dataset instead of parsing your own. The configuration parameters are pre-configured to use this small dataset.
+
+- parse the original, raw dataset in order to balance it: `python parse_dataset.py parsing.input_dataset_dir=input/ parsing.output_dataset_dir=output/ parsing.max_oversampling_factor=2.0`
+
 ### Data generation
 
 Before data generation you need to download raw audio data. We recommend to download v1.2 of the MedleySolos-DB dataset to `data/` and then specify the command line argument `Mixer.raw_data_path` with the extraction path. For testing purposes though we added a small, balanced version of the dataset in `data/medley-solos-db-small/`.
 
-
-- generate data: `python generate_data.py -m Mixer.raw_data_path=clean_dataset Mixer.num_epochs=10 Mixer.pickle_path=data/pickle_10epochs Mixer.data_type=validation,test,training`
-  - generates data for training+test+validation all at once
+- generate data for 'training' target: `python generate_data.py`
+- generate data for all dataset targets using 5 mixing epochs for 'training' data and 'MEL' features: `python generate_data.py -m Mixer.training.num_epochs=5 Mixer.pickle_path=data/pickle_5epochs Mixer.feature=MEL Mixer.data_type=validation,test,training`
 
 ### Training
+
+- train the model for 100 epochs: `python train.py train.training_epochs=100`
 
 ### Inference
 
 - Using the provided checkpoint: `python inference.py inference.audio_dir=data/test/ inference.model_path=models/neuroment2_cqt_00125782.model inference.predictions_dir=predictions/`
   - All predictions will be written to `predictions/`
+- Using your newly created checkpoint and some of your audio files: `python inference.py inference.audio_dir=/home/thatsme/audiofiles/ inference.model_path=outputs/2022-04-25/train/models/neuroment2_00000017.model inference.predictions_dir=predictions/`
 
-## Examples
+Note that the feature computation algorithm and the STFT settings will be read automatically from the model checkpoint. You don't need to specify those in the config.
 
-### Complete run
+![](docs/Sequence_1_noise-matrix.png)
 
-- parse the original raw audio file dataset s.t. it is balanced
+## Maintainers
 
-```bash
-python parse_dataset.py parsing.input_dataset_dir=input/ parsing.output_dataset_dir=output/ parsing.max_oversampling_factor=2.0
-```
-
-- generate the training dataset
-
-```bash
-python generate_data.py -m Mixer.raw_data_path=output/ Mixer.num_epochs=1 Mixer.pickle_path=output_dataset/ Mixer.data_type=validation,test,training
-```
-
-- train with the training dataset:
-
-```bash
-python train.py train.training_epochs=25 train.batch_size=32 train.gpu_index=0 train.continue_training=False train.dataset_dir=output_dataset/ train.use_batch_norm=True
-```
-
-- predict envelopes of test audio files in `data/test`
-
-```bash
-python inference.py inference.model_path=neuroment2_00010000.model inference.audio_dir=data/test/ inference.predictions_dir="predictions"
-```
-
-### Single
-
-- generate data: `python generate_data.py -m Mixer.raw_data_path=clean_dataset Mixer.num_epochs=10 Mixer.pickle_path=data/pickle_10epochs Mixer.data_type=validation,test,training`
-  - generates data for training+test+validation all at once
-- training: `python train.py train.training_epochs=25 train.batch_size=32 train.gpu_index=0 train.continue_training=False train.dataset_dir=data/pickle_10epochs train.use_batch_norm=True`
-- inference: `python inference.py inference.model_path=outputs/2022-01-12/23-18-58/models/neuroment2_00000149.model inference.audio_dir=data/test/ inference.predictions_dir="predictions"`
+- [Lukas Maier](mailto:maier.lukas1995@gmail.com)
+- [Lorenz Haeusler](mailto:haeusler.lorenz@gmail.com)

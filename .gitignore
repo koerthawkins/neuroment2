@@ -1,5 +1,11 @@
 # Custom ignores
 
+## Archive
+_archive/
+
+## Converted model files
+*.onnx
+
 ## Hydra outputs
 outputs/
 multirun/

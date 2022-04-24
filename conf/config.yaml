@@ -29,7 +29,7 @@ Mixer:
   # path where we write generated features and labels to
   pickle_path: "data/pickle/"
   # the type of data we want to generate. options: "training", "validation", "test"
-  data_type: "test"
+  data_type: "training"
   # number of times we use each raw data file per mixing epoch
   num_epochs:
     training: 1
@@ -44,7 +44,7 @@ Mixer:
   num_samples_per_file: 131072
   # the feature computation algorithm with which features will be computed
   # options: CQT, STFT, MEL, CQT+MEL
-  feature: "MEL"
+  feature: "CQT"
   # the algorithm used to compute the envelope/activations
   # options: "RMS" (RMS computed in time domain), "SPECTRUM" (use spectral data to compute envelope)
   envelope_type: "RMS"
@@ -69,7 +69,7 @@ Mixer:
     # sampling rate in Hz
     sr: 44100
     # whether to save WAV data to pickle files after feature computation
-    save_wav_data: True
+    save_wav_data: False
 
 train:
   # the directory with the pickle files containing features and labels (relative to repository root dir)

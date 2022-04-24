@@ -6,6 +6,7 @@ import logging as log
 import numpy as np
 from librosa.core import audio, load
 import librosa as lb
+import soundfile as sf
 from tqdm import tqdm
 
 from neuroment2.utils import delete_by_indices
@@ -228,9 +229,15 @@ class Mixer:
         """
         files = []
 
+        # get available audio codecs
+        codecs = sf.available_formats()
+        codecs = {k.lower(): v for k, v in codecs.items()}  # make lower-case
+        codecs = list(codecs)
+
         # get raw audio files
-        for file in glob.glob(os.path.join(self.raw_data_path, "*.wav")):
-            if data_type in file:
+        for file in glob.glob(os.path.join(self.raw_data_path, "*.*")):
+            ending = file.split(".")[-1]
+            if ending.lower() in codecs and data_type in file:
                 files.append(file)
 
         # for each audio file we generate a list with all possible observation windows
@@ -249,6 +256,8 @@ class Mixer:
         n_mixes = self.num_epochs * len(self.file_list)
         n_mixes /= np.mean([self.min_num_instruments, self.max_num_instruments])
         n_mixes = int(n_mixes)
+
+        log.info(f"Creating {n_mixes} mixes from {len(self.file_list) / self.num_observation_windows} raw audio files in '{self.raw_data_path}', using {self.num_observation_windows} observation windows per file.")
 
         # init progress bar
         progress_bar = tqdm(total=n_mixes)
