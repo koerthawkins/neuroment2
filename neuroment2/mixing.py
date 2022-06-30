@@ -423,7 +423,7 @@ class Mix:
             (self.dft_size + (self.num_frames - 1) * self.hopsize) + 1
         ) / self.sr
 
-        levels = np.clip(np.random.normal(0.5, 0.1, self.num_files), 0.0, 1.0)
+        levels = np.clip(np.random.normal(0.5, 0.1, self.num_files), 1e-8, 1.0)
         levels /= np.sum(levels)
         for i, (file, offset) in enumerate(self.files_mix):
             audio_data, _ = load(
