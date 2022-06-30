@@ -40,6 +40,7 @@ data/*
 ## Some other file types
 *.pkl
 *.model
+!models/neuroment2_cqt_00125782.model
 
 ## Linux temporary files
 *~
