@@ -6,11 +6,13 @@ Instrument detection using convolutional neural networks.
 
 ## Description
 
-This project implements the data generation, network training and inference for instrument detection using a CNN.
+This project implements the data generation, neural network, training and inference for instrument detection using a CNN.
 
 The CNN comprises a simple, linear model structure. For data generation you may use different feature computation algorithms, like mel-frequency spectra or CQTs. You can predict the envelopes of different instruments in your own audio files during inference.
 
-The documentation of this project is in [docs/neuroment2_haeusler-maier.pdf](docs/neuroment2_haeusler-maier.pdf).
+There is also a [pre-trained checkpoint](models/neuroment2_cqt_00125782.model) and some test data in [data/test/](data/test/).
+
+You may find a more detailed documentation in [docs/neuroment2_haeusler-maier.pdf](docs/neuroment2_haeusler-maier.pdf).
 
 ## Structure
 
